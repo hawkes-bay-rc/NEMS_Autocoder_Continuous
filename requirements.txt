@@ -10,11 +10,16 @@ pandas
 numpy
 requests
 operator
-datetime datetime
+datetime
 
-xml.etree.ElementTree
+xml
 json
 gsw
-ioos_qc
 ipywidgets
 bokeh
+
+smtplib
+ssl
+email
+
+-e https://github.com/ioos/ioos_qc.git
