@@ -1,0 +1,20 @@
+geojson
+netCDF4
+numpy>=1.14
+pygc
+ruamel.yaml
+simplejson
+xarray
+
+pandas
+numpy
+requests
+operator
+datetime datetime
+
+xml.etree.ElementTree
+json
+gsw
+ioos_qc
+ipywidgets
+bokeh
