@@ -51,6 +51,7 @@ qFlags = qartod.QartodFlags()
 
 #import hill_depth by Jeff Cooke
 import hill_depth as hd
+#import hill_depthV01 as hd
 
 #Hilltop connector
 """Using emar api instead"""
@@ -58,19 +59,14 @@ import hill_depth as hd
 ##https://data.hbrc.govt.nz/EnviroData/Telemetry.hts?service=Hilltop&request=GetData&Site=HAWQi&Measurement=Temperature%205m&From=1/12/2017&To=1/1/2020
 apiRoot="https://data.hbrc.govt.nz/EnviroData/Telemetry.hts?service=Hilltop"
 
-#Global variables, these are synchronised across code
+#variables - all are strings here
 mySite = None
 myMeasurement = None
 myStartDate = None
 myEndDate = None
 emailId = None
 
-#the codes that tie the QARTOD output to NEMS codes
-myNEMSMap = {
-        float(qFlags.GOOD):600,
-        float(qFlags.SUSPECT):400,
-        float(qFlags.FAIL):200
-}
+data = None #dataframe sits in this variable
 
 #get all the sites for requisite measurement type
 requestType = "SiteList"
@@ -86,18 +82,12 @@ for child in root.iter('*'):
         sites.append(child.attrib['Name'])
 #print('sites: ',sites)
 
-#data is the universal data frame for the data fetched from Hilltop and for appending the QARTOD-NEMS outcome
-data = None
-
-#this module is oriented towards fetching the data from hilltop based on the site-measurement-dates combo requested
-#the api root can be changed in the front end by assigning qb.apiRoot the appropriate hilltop open data api
 def fetchData():
     #print('fetching data: ',mySite,myMeasurement,myStartDate,myEndDate)
     global data
-    timeList = [] #data scraped from hilltop returned xml - the time part
-    obsList = [] #data scraped from hilltop returned xml - the observation part
-    
-    #get the observation data for requested site
+    timeList = []
+    obsList = []
+    #get the observation data for each site
     requestType = "GetData"
     #https://data.hbrc.govt.nz/Envirodata/EMAR.hts?Service=Hilltop&Request=GetData&Site=Ngaruroro%20River%20at%20Fernhill&Measurement=Flow%20[Water%20Level]&From=2014-01-01&To=2015-12-01&Interval=1%20hour&method=Average'
     myWebRequest =  apiRoot + '&Request='+requestType+'&Site='+mySite+'&Measurement='+myMeasurement+'&From='+myStartDate+'&To='+myEndDate
@@ -122,9 +112,6 @@ def fetchData():
     #print(hasattr(df['timestamp'], 'dtype'))
     #print(np.issubdtype(df['timestamp'].dtype, np.datetime64))
 
-#this is a hilltop specific query to fetch the minimum and maximum values for the site
-#the apiRoot should point to processed data for reliability - Marked issue
-#this function is used to set the slope for rate of change on interactive mode only
 def getAnnMinMax(site,measurement,dateStart,dateEnd):
     myWebRequest =  apiRoot + "&Request=Hydro"
     #"https://data.hbrc.govt.nz/EnviroData/Telemetry.hts?Service=Hilltop&Request=Hydro" #
@@ -166,10 +153,7 @@ def getAnnMinMax(site,measurement,dateStart,dateEnd):
                         myRateChange.append((valHi-valLow)/(timeHi-timeLow))
     #return max(min(myRateChange),0.001),max(max(myRateChange),0.001) #make sure no negative values turn up
     return max(myRateChange)*2
-
-#this is a hilltop specific query to fetch the minimum and maximum values for the site
-#the apiRoot should point to processed data for reliability - Marked issue
-#this function is used to set the min and max for the gross range test on interactive mode only
+    
 def getMsmtPDist(site,measurement,dateStart,dateEnd):
     myWebRequest =  apiRoot + "&Request=Hydro"
     #"https://data.hbrc.govt.nz/EnviroData/Telemetry.hts?Service=Hilltop&Request=Hydro" #
@@ -212,23 +196,25 @@ def getMsmtPDist(site,measurement,dateStart,dateEnd):
         
         return grfbVal, grfaVal, ((grsbVal<grfbVal)*grfbVal or grsbVal), ((grsaVal>grfaVal)*grfaVal or grsaVal)
         #return -1,-1,-1,-1
-
-#this variable takes care of the plotting the consistency of data with periodic surveys
+    
 extraPlotsPlease = False #variable to indicate add additional points to plots
 extraPlotData = None #data to the plots !! how about this is none being used as a proxy to initiate extra plots
-
-#the core module where all the tests are run in a sequence
-#the prerequisite is all the global variables are set
 def runTests():
     global qc_results
     #print (qc_config)
     global extraPlotsPlease
     global extraPlotData
-
+    global data
+    
+    #global mySite
+    #global myMeasurement
+    #global myStartDate
+    #global myEndDate
+    #global accuThresh_NEMS
+    #global accuBWidth_NEMS
+        
     # Run QC
-    #the qc(QARTOD) config has to be set before and is done in configParams method
     qc = QcConfig(qc_config)
-    #data is based on the observations drawn from hilltop at this point
     qc_results =  qc.run(
         inp=data[myMeasurement],
         tinp=data['timestamp'].values 
@@ -236,21 +222,16 @@ def runTests():
     
     #NEMS tests
     #gap test
-    #the test check for difference of consequent time stamps and generates the mask
-    #the data is assumed to be sorted in time (coherent with hilltop api reply)
     timDiff = list(map(operator.sub, data['timestamp'].values[1:],data['timestamp'].values[:-1]))
     samplingMask_gapData = np.insert(np.array([qFlags.FAIL if x>np.timedelta64(timeLimit_NEMS,'m') \
                                                else qFlags.GOOD for x in timDiff]), 0, 1, axis=0) #prepend for start to be true
     #print(samplingMask_gapData)
     qc_results['qartod']['NEMS_gapData'] = ma.masked_array(samplingMask_gapData)
-    #there is no criterion for assigning suspect here
     qc_results['qartod']['aggregate'][qc_results['qartod']['NEMS_gapData']==qFlags.FAIL]=qFlags.FAIL
     
     
     ## resolution tests
     #print(data[myMeasurement].dtype)
-    #the resolution test is based on the number of decimal points expected
-    #this mean a value of 1 refers to 0.1 and 2 points to 0.01 but not 0.2
     samplingMask_resolution = []
     for x in data[myMeasurement]:
         if('.' in x):
@@ -271,15 +252,10 @@ def runTests():
             mapFile = json.load(json_file)
             for item in mapFile:
                 #print(item['HAWQi'], myMeasurement)
-                #this endpoint is fixed as this facility is customised on HBRC hilltop server
-                #the code has to be edited in case used on other systems
-                #HARDCODED
                 endPoint = "https://data.hbrc.govt.nz/EnviroData/EMAR.hts?"
                 siteName = "HAWQi NSWQ"
                 precTSeries = None #place holder
-                
-                #HARDCODED
-                #this part of the code is a work in progress and is yet to be finalised
+
                 if(item['HAWQi'] == myMeasurement):
                     #print(item['var']),item['depth']);
                     if item['var'] == 'compute':
@@ -379,7 +355,6 @@ def runTests():
                     #filter 10 times sampling rate on both sides of obs, to create a short version of data for imputation, easier handling.
                     #iterating over data frames is super slow, so extracting the time part to a list/array
                     for fieldVisit in precTSeries["surveytime"]:
-                        #fix the boundary times to filter the data, the bandwidth term indicates how many time gaps should we include in the window
                         dLo = accuBWidth_NEMS * -1*np.timedelta64(timeLimit_NEMS,'m') + fieldVisit
                         dHi = accuBWidth_NEMS * np.timedelta64(timeLimit_NEMS,'m') + fieldVisit
                         #print(dLo,dHi)
@@ -390,7 +365,6 @@ def runTests():
                         #print(redData.dtypes)
                         #print(len(redData[redData['timestamp']>fieldVisit]),len(redData[redData['timestamp']<fieldVisit]))
                         
-                        #check if the data falls inbetween two dates before running the assessment
                         if (len(redData[redData['timestamp']>fieldVisit]) > 0) and (len(redData[redData['timestamp']<fieldVisit]) > 0):
                             temp = pd.DataFrame(data={"timestamp":np.array([fieldVisit]),
                                                       myMeasurement:np.array([float("NaN")])}, columns=["timestamp",myMeasurement])
@@ -423,10 +397,14 @@ def runTests():
     #qc_results
     plotStats()
     mapNEMScodes()
-    data.to_csv(qb.mySite+'-'+qb.myMeasurement+'.csv',index=False)
-
-#this method is for the interactive module
-#the method fetches the measurements available for a particular site from the hilltop
+    #format according to Jeff Cooke's mail
+    data['Measurement'] = myMeasurement
+    data.rename(columns={myMeasurement:'Value'}, inplace=True)
+    #print(data.head())
+    data = data[['timestamp','Measurement','Value','QC','Comment']] #reorganising the column position
+    #print(data.head())
+    data.to_csv(mySite+'-'+myMeasurement+'.csv',index=False)
+    
 def measList(site):
     measurements = []
     #print('fetching measurements')
@@ -447,9 +425,6 @@ def measList(site):
 
 #user selector
 runOk = None
-#this module is both for the interactive and batch mode version
-#the module sets the global variables and should be executed before tests
-#it is more like a constructor function with facility to fetch data
 def siteSelector(Site,Measurement,StartDate,EndDate):
     global mySite
     mySite = Site
@@ -467,7 +442,6 @@ def siteSelector(Site,Measurement,StartDate,EndDate):
 
 accuThresh_NEMS = None
 accuBWidth_NEMS = None
-#this method is where the user sets the parametric values for the tests
 def configParams(resolution,
                  timeGap,
                  accuracyThreshold,
@@ -518,8 +492,18 @@ def configParams(resolution,
     ##data gap
     timeLimit_NEMS = timeGap #15 #minutes
     decimalReq_NEMS = resolution #1
-    accuThresh_NEMS = accuracyThreshold #1
-    accuBWidth_NEMS = accuracyBandwidth #10
+    accuThresh_NEMS = accuracyThreshold
+    accuBWidth_NEMS = accuracyBandwidth
+    
+    #try :
+    #    runTests()
+            #doThePlots('aggregate')
+    #except Exception as e:
+    #    print(e, 'error in run tests')
+        
+    #change2Run = 0
+    #return resolution, timeGap
+
 
 # Method to plot QC results using Bokeh
 p1 = None
@@ -621,11 +605,9 @@ def plotStats():
     p.xaxis.major_label_orientation = 1
     p.xgrid.grid_line_color = None
     p.plot_width = 1200
+    
     show(p)
     
-    #this function is yet to be developed
-    #Strong dependency on the mail server
-    #the global variables are removed to avoid unnecessary invocation
     emailId = False #disabled for now till we figure out the hbrc smtp or something else
     if emailId:
         output_file(mySite+'-'+myMeasurement+".html")
@@ -662,14 +644,16 @@ def plotStats():
         with smtplib.SMTP_SSL("outlook.office365.com", 995,context=context) as server:
             server.login(sender_email, password)
             server.sendmail(sender_email, receiver_email, message.as_string())
-
-#the function to map the QARTOD results to NEMS code
-#the mapping is a global variable in dict format and can be altered from front end
-#the comments are elaborate and verbose indicating where the tests have failed
+    
 def mapNEMScodes():
     global data
-    data['QC code'] = qc_results['qartod']['aggregate'].data
-    data = data.replace({'QC code':myNEMSMap})
+    data['QC'] = qc_results['qartod']['aggregate'].data
+    myMap = {
+        float(qFlags.GOOD):600,
+        float(qFlags.SUSPECT):400,
+        float(qFlags.FAIL):200
+    }
+    data = data.replace({'QC':myMap})
     
     #print(qc_results['qartod'].keys())
     df = pd.DataFrame(qc_results['qartod'], columns=qc_results['qartod'].keys())
@@ -677,8 +661,10 @@ def mapNEMScodes():
     #print(df.head())
     #df = df.where(df == qFlags.GOOD, df.columns.to_series(), axis=1)
     for i in df.columns:
-        df[i].replace(regex=r'/^(?!(?:qFlags.GOOD)$)\d+/',value=i,inplace=True)
-        #df[i].loc[(df[i] != qFlags.GOOD)] = i
-    df['comments'] = df[df.columns].apply(lambda x: ' '.join([str(a) for a in x if a !=1 ]), axis=1)
-    data['comments'] = df['comments']
+        #print(i)
+        #df[i].replace(regex=r'/^(?!(?:'+str(qFlags.GOOD)+')$)\d+/',value=i,inplace=True) #has issue decoding the flag
+        #df[i].replace(regex=r'/^(?!(?:1)$)\d+/',value=i,inplace=True)
+        df[i].loc[(df[i] != qFlags.GOOD)] = i
+    df['comment'] = df[df.columns].apply(lambda x: ' '.join([str(a) for a in x if a !=1 ]), axis=1)
+    data['Comment'] = df['comment']
     #print(df.head())
