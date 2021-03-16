@@ -1,0 +1,21 @@
+name: ioos_nems
+channels:
+    - conda-forge
+dependencies:
+    - geojson
+    - netCDF4
+    - numba
+    - numpy >=1.14
+    - pygc
+    - ruamel.yaml
+    - shapely
+    - simplejson
+    - xarray
+    - pandas
+    - requests
+    - bs4
+    - lxml
+    - gsw
+    - ipywidgets
+    - bokeh
+    - ioos_qc
