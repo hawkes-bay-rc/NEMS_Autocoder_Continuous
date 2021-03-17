@@ -1,3 +1,8 @@
+# ioos-qc requires geopandas in order to work and this is problematic to install via pip on Windows
+# The fiona dependencies need to be installed seperately, on Windows and gdal set up correctly.  
+# For windows the recommended install method is via conda, this should also work for iOs and Linux systems.
+# For iOs and Linux systems this requirements file should provide the necessary dependencies.
+
 geojson
 netCDF4
 numpy>=1.14
@@ -9,17 +14,24 @@ xarray
 pandas
 numpy
 requests
-operator
+# operator # part of standard library
 datetime
 
-xml
-json
+# xml
+# json
 gsw
 ipywidgets
 bokeh
 
-smtplib
-ssl
-email
+bs4
+lxml
 
--e https://github.com/ioos/ioos_qc.git
+# smtplib # part of standard library
+# ssl # part of standard library
+# email # part of standard library
+
+
+
+
+#-e https://github.com/ioos/ioos_qc.git
+git+https://github.com/ioos/ioos_qc.git
