@@ -1,4 +1,4 @@
-!#/usr/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
 Updated on WED Dec  23 13:30:00 NZT
@@ -63,6 +63,8 @@ data = None #dataframe sits in this variable
 
 extraPlotsPlease = False #variable to indicate add additional points to plots
 extraPlotData = None #data to the plots !! how about this is none being used as a proxy to initiate extra plots
+
+
 def runTests():
     global qc_results
     #print (qc_config)
@@ -502,7 +504,48 @@ def plotStats():
     p.plot_width = 1200
     
     show(p)
+
     
+    
+###-----------------------------------------------------------------------------###    
+## Added back in so that notebook runs
+
+def doThePlots(x=None):
+    try:
+        if x=="gap data":
+            title = "NEMS gapData - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'NEMS_gapData')
+        elif x=="resolution":
+            title = "NEMS resolution - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'NEMS_resolution')
+        elif x=="accuracy":
+            title = "NEMS accuracy - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'NEMS_accuracy')
+            
+            if extraPlotsPlease != None :
+                doExtraPlots(extraPlotsPlease, extraPlotData)
+            
+        elif x=="gross range":
+            title = myMeasurement + " gross range test - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'gross_range_test')
+        elif x=="flat line":
+            title = myMeasurement +" flat line test - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'flat_line_test')
+        elif x=="rate of change":
+            title = myMeasurement +" rate of change test - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'rate_of_change_test')
+        elif x=="spike":
+            title = myMeasurement +" spike test - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'spike_test')
+        else :#if x=="aggregate":
+            # QC Aggregate flag
+            title = myMeasurement +" aggregate - "+mySite+" HBRC"
+            plot_results(data, myMeasurement, qc_results, title, 'aggregate')
+
+    except Exception as e :
+        print("Please run the tests first, thanks",e)
+        
+###---------------------------------------------------------------------------------###
 ###-------------------------------------------------------------------------------------
 # The idea here is to send the outputs to an interested party
 # The implementation is not finalised yet, so please don't use it
