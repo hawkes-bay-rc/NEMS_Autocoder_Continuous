@@ -1,6 +1,7 @@
 name: ioos_nems
 channels:
     - conda-forge
+    - mullenkamp
 dependencies:
     - geojson
     - netCDF4
@@ -19,3 +20,4 @@ dependencies:
     - ipywidgets
     - bokeh
     - ioos_qc
+    - hilltop-py

@@ -6,6 +6,9 @@ import requests
 import xml.etree.ElementTree as ET
 import json
 
+# Added hilltop library
+from hilltoppy import web_service as ws
+
 style = {'description_width': '70%'}
 
 apiOptions = widgets.Dropdown(options=['Telemetry','All Sites'],value="All Sites")
@@ -21,7 +24,9 @@ def selectStatApi(api):
 import QaBay as qb
 
 #get all the sites for requisite measurement type
-sites = []
+#sites = []
+
+"""
 def getSites():
     requestType = "SiteList"
     apiRoot="https://data.hbrc.govt.nz/EnviroData/Telemetry.hts?service=Hilltop" #sites from Telemetry as we're processing them
@@ -36,10 +41,17 @@ def getSites():
         if child.tag == 'Site':
             sites.append(child.attrib['Name'])
     #print('sites: ',sites)
+
+"""
 #prefetch the available sites
-getSites()
+# getSites()
+# as dataframe
+base_url = 'https://data.hbrc.govt.nz/EnviroData'
+hts = 'EMAR.hts'
+sitedf = ws.site_list(base_url, hts, location=True)
+sites = sitedf['SiteName'].tolist()
 
-
+"""
 def measList(site):
     measurements = []
     #print('fetching measurements')
@@ -57,6 +69,7 @@ def measList(site):
             measurements.append(child.attrib['Name'])
     #print('measurements: ',measurements)
     return measurements
+"""
 
 siteOptions = widgets.Dropdown(options=sites,value="HAWQi")
 measurementOptions = widgets.Dropdown()
@@ -78,7 +91,10 @@ def updateMsmt(*args):
     measurementOptions.disabled = True
     button.disabled = True
     
-    measurementOptions.options = measList(siteOptions.value)
+    #measurementOptions.options = measList(siteOptions.value)
+    measdf = ws.measurement_list(base_url, hts, siteOptions.value)
+    
+    measurementOptions.options = measdf.index.get_level_values('Measurement').tolist()
     
     measurementOptions.disabled = False
     button.disabled = False
