@@ -19,5 +19,9 @@ dependencies:
     - gsw
     - ipywidgets
     - bokeh
-    - ioos_qc
+    - ipydatetime
     - hilltop-py
+    # ioos_qc
+    # conda version of ioos_qc behind pip so use pip
+    - pip:
+      - ioos-qc

@@ -22,6 +22,7 @@ datetime
 gsw
 ipywidgets
 bokeh
+ipydatetime
 
 bs4
 lxml
