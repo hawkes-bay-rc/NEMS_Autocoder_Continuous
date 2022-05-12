@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
-"""Tests based on the IOOS QARTOD manuals."""
+"""
+Tests based on the IOOS QARTOD manuals.
+Copy of the ioos code from https://github.com/ioos/ioos_qc/blob/master/ioos_qc/qartod.py before spike algorithm was improved.
+Added a median method into the algorithm to improve spike detection, but this method is not in line with the qartod defined methodology, and an update to the package improved the spike detection so that this code is no longer required.  Remains in case the median method is useful at a later stage.
+"""
 import logging
 import warnings
 from typing import Dict, List, Tuple, Union, Sequence

@@ -34,6 +34,7 @@ from ioos_qc.utils import (
     mapdates
 )
 
+# HBQartod contains a modified qartod spike algorithm, was used in some earlier versions.
 #import HBqartod as HBqartod
 
 #Import timeseries data utility functions.  These are the functions for getting data from the servers.
@@ -71,6 +72,7 @@ def resolution_ok(x, dec_required):
             # If the number is greater than or equal to the requirement then there is no issue, return True
             return True
         else:
+       
             # Otherwise there's an issue, return False.
             return False
     else:
@@ -242,6 +244,10 @@ def processCheckData(checkData, data, nemsConfig):
                         accuracyCheck.loc[cdi, 'AccuracyStatus'] = qFlags.FAIL #"Fail"
                     # break out of the loop
                     break
+    else:
+        # There was no check data so create an empty accuracy check dataframe
+        accuracyCheck = pd.DataFrame()
+        
     if not accuracyCheck.empty:
         return accuracyCheck  
     else:
@@ -303,7 +309,7 @@ def nemsResolutionTest(data, nemsConfig):
         # If any of the results meet the resolution test then all of the results are ok.
         #samplingMask_resolution = [qFlags.GOOD if data['valStr'].apply(resolution_ok, dec_required=decimalReq_NEMS).any() \
         #                           else qFlags.FAIL] * len(data['valStr'])
-        # New code to assess as go through
+        # New code to assess as go through, would be better to process in a window, similar to flat line to avoid 0 issues, but ensure that major issues identified.
         samplingMask_resolution = np.array([qFlags.GOOD if resolution_ok(x, decimalReq_NEMSfn(x=x, config=nemsConfig)) \
                                             else qFlags.FAIL for x in data['valStr'].tolist()])
     else:
@@ -392,7 +398,7 @@ def nemsVerificationAccuracyTest(data, accuracyCheck, nemsConfig):
     ## Accuracy Tests
     # Get the NEMS Standard
     nemsStandard = nemsConfig['NEMS_Standard'].iloc[0]
-    
+    #TODO if no check data get an error
     if nemsStandard != 'Not Available' and not accuracyCheck.empty:
     #if nemsStandard != 'Not Available' and not checkData.empty:
         # Need a value for the mapping to work, set to good for now
@@ -547,33 +553,37 @@ def mapNEMScodes(qc_results, data):
     return full_df
 
 
-def processGaps(data, interpolate_values, interpolation_time_threshold, interpolation_allowance):
+def processGaps(data, interpolate_values, gap_time_threshold): # interpolation_time_threshold, interpolation_allowance):
     """
-    Processes gaps in the data by interpolation, or inserting a gap marker.
+    Interpolate spikes, and insert gap markers if missing data exceeds a time threshold.
     
     Parameters
     ----------
     data : pandas dataframe
         A pandas dataframe of quality coded results, the output from mapNEMScodes.
     interpolate_values : bool
-        Whether values should be interpolated.  If True interpolation will be run, if False it won't be.
-    interpolation_time_threshold : int
-        The maximum length of time that interpolation is allowed over, in seconds.
-    interpolation_allowance : int
-        The percentage allowance that determines whether a measured value is used, or an interpolated one is used.
-        Where the measured value is within this percentage of the interpolated value then the measured value will be used.
+        Whether spikes should be interpolated.  If True interpolation will be run, if False it won't be.
+    gap_time_threshold : int
+        The maximum length of time that data is allowed to be missing, in seconds.
+    DELETE interpolation_time_threshold : int
+    DELETE     The maximum length of time that data is allowed to be missing, in seconds.
+    DELETE interpolation_allowance : int
+    DELETE    The percentage allowance that determines whether a measured value is used, or an interpolated one is used.
+    DELETE    Where the measured value is within this percentage of the interpolated value then the measured value will be used.
     Returns
     -------
     A pandas dataframe
         A pandas dataframe with interpolated results shown for data points that were 'dropped' and within the interpolation threshold, 
-        and blank likes where there are gaps in the data over the interpolation threshold.
+        and blank lines where there are gaps in the data over the interpolation threshold.
     """
     # Copy the value where Action is Keep.
     data['Interpolated Value'] = data['Value'].mask(data['Action']!='Keep')
     
+    """
     # Check that the interpolation_allowance is between 0 and 100, if not then raise an exception.
     if interpolation_allowance < 0 or interpolation_allowance > 100:
         raise ValueError("interpolation_allowance must be between 0 and 100")
+    """
         
     # Interpolate the data to fill the gaps if option set
     if interpolate_values:
@@ -583,16 +593,7 @@ def processGaps(data, interpolate_values, interpolation_time_threshold, interpol
         # Interpolate the values to get results at the time of the checks and then reset the index
         data.interpolate(method= 'values', inplace = True)
         data.reset_index(inplace = True)
-    # Assess the interpolated data, if the interpolated value is within x% of the actual then keep the original.
-    # data['Interpolation_Difference'] = abs((data['Value']-data['Interpolated Value'])/data['Value'])
-    data.loc[(abs((data['Value']-data['Interpolated Value'])/data['Value']) < (interpolation_allowance/100.0)) & (data['Action']!='Keep')
-             , 'Action'] = 'Interpolation Match'
-    # Set QC for Interpolation Match data to 500 if it was 600 before.  Enclose in Try in case no results are returned.
-    try:
-        data.loc[(data['Action']=='Interpolation Match' and data['QC']=='600'), 'QC'] = '500'
-    except Exception:
-        pass
-    
+        
     # Create a time diff column for results where Action is Keep
     timeDiff = list(map(operator.sub, data.loc[data['Action']!='Drop', 'DateTime'].values[1:], \
                         data.loc[data['Action']!='Drop', 'DateTime'].values[:-1]))
@@ -601,8 +602,29 @@ def processGaps(data, interpolate_values, interpolation_time_threshold, interpol
     data.loc[data['Action']!='Drop', 'GoodValueGap'] = timeDiff
     # Backfill the GoodValueGap Column
     data['GoodValueGap'] = data['GoodValueGap'].fillna(method='backfill')
+    
+    """
+    # Assess the interpolated data, if the interpolated value is within x% of the actual then keep the original if within acceptable gap.
+    # data['Interpolation_Difference'] = abs((data['Value']-data['Interpolated Value'])/data['Value'])
+    data.loc[(abs((data['Value']-data['Interpolated Value'])/data['Value']) < (interpolation_allowance/100.0)) & \
+             (data['Action']!='Keep') & \
+             (data['GoodValueGap'] < np.timedelta64(interpolation_time_threshold,'s'))
+             , 'Action'] = 'Interpolation Match'
+    # Set QC for Interpolation Match data to 500 if it was 600 before.  Enclose in Try in case no results are returned.
+    try:
+        data.loc[(data['Action']=='Interpolation Match' and data['QC']=='600'), 'QC'] = '500'
+    except Exception:
+        pass
+    """
+    
     # Categorise whether interpolation ok or not
+    """
     data.loc[((data['GoodValueGap'] < np.timedelta64(interpolation_time_threshold,'s')) & \
+             (data['Action']=='Drop') & \
+             interpolate_values), 'Action'] = 'Interpolated'
+    """
+    # Only interpolate spikes, spike_test Fail (4)
+    data.loc[((data['spike_test']==4) & \
              (data['Action']=='Drop') & \
              interpolate_values), 'Action'] = 'Interpolated'
     # Set QC for interpolated data to 300
@@ -610,10 +632,13 @@ def processGaps(data, interpolate_values, interpolation_time_threshold, interpol
     # Change value to interpolated value 
     
     data.loc[(data['Action']=='Interpolated'), 'Value'] = data['Interpolated Value']
+    
     # Insert blank rows above entries where the GoodValueGap is greater than the interpolation_threshold
     # Create a new column to use as an index (with spaces for new rows).
     data['Index_Increment'] = 1
-    data.loc[(data['GoodValueGap'] > np.timedelta64(interpolation_time_threshold,'s')), 'Index_Increment'] = 2
+    # data.loc[(data['GoodValueGap'] > np.timedelta64(interpolation_time_threshold,'s')), 'Index_Increment'] = 2
+    data.loc[(data['GoodValueGap'] > np.timedelta64(gap_time_threshold,'s')), 'Index_Increment'] = 2
+    data['I'] = data['Index_Increment'].cumsum()-1
     data['I'] = data['Index_Increment'].cumsum()-1
     # Get a list of indexes where the GoodValueGap is greater than the interpolation_threshold.
     """
@@ -622,7 +647,8 @@ def processGaps(data, interpolate_values, interpolation_time_threshold, interpol
     blankDf.index.names = ['I']
     """
     # Try assigning index to one less than new index created.
-    blankDf = data.loc[(data['GoodValueGap'] > np.timedelta64(interpolation_time_threshold,'s')), ['Site', 'Measurement', 'Action', 'I']]
+    # blankDf = data.loc[(data['GoodValueGap'] > np.timedelta64(interpolation_time_threshold,'s')), ['Site', 'Measurement', 'Action', 'I']]
+    blankDf = data.loc[(data['GoodValueGap'] > np.timedelta64(gap_time_threshold,'s')), ['Site', 'Measurement', 'Action', 'I']]
     blankDf['I'] = blankDf['I'] - 1
     # Add a gap marker
     blankDf['Gap'] = 'Gap'

@@ -480,9 +480,9 @@ def plot_results(data, title, test_name):
     TOOLTIPS = [
         ("index", "$index"),
         ("time", "@DateTime{%F %T}"),
-        ("value", "@OriginalValue"),
+        ("value", "@OriginalValue{0.0000}"),
         ("Flag", "@QualityFlag"),
-        ("Export value", "@Value"),
+        ("Export value", "@Value{0.0000}"),
         ]
 
     p1 = figure(x_axis_type="datetime", \
@@ -660,9 +660,9 @@ def plot_NEMS_results(data, data_set):
         TOOLTIPS = [
             ("index", "$index"),
             ("time", "@DateTime{%F %T}"),
-            ("value", "@Value"),
+            ("value", "@Value{0.0000}"),
             ("QC", "@QC"),
-            ("Original Value", "@OriginalValue"),
+            ("Original Value", "@OriginalValue{0.0000}"),
             ]
 
         p1 = figure(x_axis_type="datetime", \
@@ -748,10 +748,16 @@ def on_runBtn_clicked(b):
         global qc_df
         temp_df = nq.mapNEMScodes(qc_results=qc_results, data=data)
         #qc_df = nq.processGaps(data=temp_df, interpolation_time_threshold=(3600*3), interpolation_allowance = 5)
+        """
         qc_df = nq.processGaps(data=temp_df, \
                                interpolate_values=interpolationFlag.value, \
                                interpolation_time_threshold=int(gapThreshold.value), \
                                interpolation_allowance = int(interpolationAllowance.value))
+        """
+        
+        qc_df = nq.processGaps(data=temp_df, \
+                               interpolate_values=interpolationFlag.value, \
+                               gap_time_threshold=int(gapThreshold.value))
             
         show(p1)
         show(p2)

@@ -2,9 +2,11 @@
 """
 Created on Tue May 29 10:12:11 2018
 @author: MichaelEK
+as https://github.com/mullenkamp/hilltop-py/blob/master/hilltoppy/web_service.py
 
 Edited 18 May 2021 Jeff Cooke
 Added option to retrieve timeseries other than just the standard one, ie Check Data or Quality codes
+Changes should now be reflected in main code base for hilltoppy.
 """
 
 #try:

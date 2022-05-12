@@ -7,9 +7,9 @@ Utility functions for accessing data and information from time series servers.
 """
 
 # Added hilltop library
-#from hilltoppy import web_service as ws
+from hilltoppy import web_service as ws
 # Development version (local)
-import web_service as ws
+# import web_service as ws
 import pandas as pd
 
 

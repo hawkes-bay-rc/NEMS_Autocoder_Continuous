@@ -44,11 +44,27 @@ def runAnalysis(requestType='Hilltop',
     data['TimeDiff'] = data['DateTime'].diff().astype('timedelta64[s]').fillna(1)
     data['Rate of Change'] = data['ValueDiff'].div(data['TimeDiff'])
     
-    # Calculate the 'spikiness', the difference between the value and the averate of the adjacent values.  A simplified second derivative.
-    data['Value-1'] = data['Value'].shift(+1)
-    data['Value+1'] = data['Value'].shift(-1)
-    data['Spikiness'] = data['Value'] - ((data['Value-1'] + data['Value+1']) / 2)
-    data['Spikiness'] = data['Spikiness'].fillna(0)
+    # Calculate the 'spikiness', the difference between the value and the average of the adjacent values.  A simplified second derivative.
+    # data['Value-1'] = data['Value'].shift(+1)
+    # data['Value+1'] = data['Value'].shift(-1)
+    # data['Spikiness'] = data['Value'] - ((data['Value-1'] + data['Value+1']) / 2)
+    # data['Spikiness'] = data['Spikiness'].fillna(0)
+    
+    # New spike test (difference method from qartod)
+    inp = data['Value']
+    ref = np.ma.diff(inp)
+
+        # Find the minimum variation prior and after the n value
+    diff = np.ma.zeros(inp.size, dtype=np.float64)
+    diff[1:-1] = np.minimum(np.abs(ref[:-1]), np.abs(ref[1:]))
+
+    # Make sure that only the record (n) where the difference prior and after are opposite are considered
+    with np.errstate(invalid='ignore'):
+        diff[1:-1][ref[:-1]*ref[1:] >= 0] = 0
+    data['Spikiness'] = diff
+    
+    
+    
     
     # plot the data
     p = plot_timeseries(data=data)
