@@ -17,6 +17,7 @@ from bokeh.io import push_notebook
 
 import tsData_utils as tsu
 import tsAnalysis as ta
+import config as config
 
 #clear the plots before new ones
 from IPython.display import clear_output, display, Markdown
@@ -56,25 +57,30 @@ def statusFunction(Status):
 qc_df = pd.DataFrame()
 
 # Set the initial options
-serverOptions = widgets.Text(value="https://data.hbrc.govt.nz/EnviroData/", description="Server")
+serverOptions = widgets.Text(value=config.serverBase, description="Server")
+#serverOptions = widgets.Text(value="https://data.hbrc.govt.nz/EnviroData/", description="Server")
 # fileOptions = widgets.Text(value="EMAR.hts", description="File")
-fileOptions = widgets.Text(value="Telemetry.hts", description="File")
+#fileOptions = widgets.Text(value="Telemetry.hts", description="File")
+fileOptions = widgets.Text(value=config.serverFile, description="File")
 
 #siteOptions = widgets.Dropdown(options=sites,value="HAWQi")
 #siteOptions = widgets.Dropdown(options=ws.site_list(serverOptions.value, 
 #                                                    fileOptions.value)['SiteName'].tolist(), value='HAWQi')
-siteOptions = widgets.Dropdown(options=tsu.getSiteList(requestType='Hilltop', 
+#siteOptions = widgets.Dropdown(options=tsu.getSiteList(requestType='Hilltop', 
+siteOptions = widgets.Dropdown(options=tsu.getSiteList(requestType=config.requestType, 
                                                    base_url=serverOptions.value, 
                                                    file=fileOptions.value), 
-                               value='HAWQi')
+                               value=config.defaultSite)
+#                               value='HAWQi')
 #measurementOptions = widgets.Dropdown(options=ws.measurement_list(serverOptions.value, 
 #                                                                  fileOptions.value, 
 #                                                                  site='HAWQi').index.get_level_values('Measurement').tolist())
-measurementOptions = widgets.Dropdown(options=tsu.getMeasurementList(requestType='Hilltop', 
+#measurementOptions = widgets.Dropdown(options=tsu.getMeasurementList(requestType='Hilltop', 
+measurementOptions = widgets.Dropdown(options=tsu.getMeasurementList(requestType=config.requestType, 
                                                                  base_url=serverOptions.value, 
                                                                  file=fileOptions.value, 
                                                                  site=siteOptions.value))
-                                                                  #site='HAWQi')
+                                                                  #site='HAWQi')    
 #Check data options
 # Sites and measurements come from optionsList and server calls
 
@@ -89,24 +95,28 @@ def getOptionList(fieldName='Site'):
     else:
         raise NameError('Acceptable fieldNames are Site, Measurement, checkSite, checkMeasurement.')
 
-        
-
+  
 checkServerOptions = widgets.Text(value=serverOptions.value, description="Server")
-checkFileOptions = widgets.Text(value="EMARContinuousCheck.hts", description="File")
+checkFileOptions = widgets.Text(value=config.checkFile, description="File")
+#checkFileOptions = widgets.Text(value="EMARContinuousCheck.hts", description="File")
 
 # Need to add the checkSites from the optionsList file here too (without NaN)
 
 #serverCheckSites = ws.site_list(checkServerOptions.value, checkFileOptions.value)['SiteName'].tolist()
-serverCheckSites = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions.value)                       
+#serverCheckSites = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions.value) 
+serverCheckSites = tsu.getSiteList(requestType=config.requestType, base_url=checkServerOptions.value, file=checkFileOptions.value) 
+
 extraCheckSites = list(getOptionList(fieldName='checkSite') - set(serverCheckSites))
-checkSiteOptions = widgets.Dropdown(options=(serverCheckSites + extraCheckSites), value='HAWQi')
+#checkSiteOptions = widgets.Dropdown(options=(serverCheckSites + extraCheckSites), value='HAWQi')
+checkSiteOptions = widgets.Dropdown(options=(serverCheckSites + extraCheckSites), value=config.defaultSite)
 
 # Need to add the checkMeasurements from the optionsList file here too (without NaN)
 #serverCheckMeasurements = ws.measurement_list(checkServerOptions.value, 
 #                                                                  checkFileOptions.value, 
 #                                                                  site='HAWQi', 
 #                                                                  tstype='All').index.get_level_values('Measurement').tolist()
-serverCheckMeasurements = tsu.getMeasurementList(requestType='Hilltop', 
+#serverCheckMeasurements = tsu.getMeasurementList(requestType='Hilltop', 
+serverCheckMeasurements = tsu.getMeasurementList(requestType=config.requestType, 
                                              base_url=checkServerOptions.value, 
                                              file=checkFileOptions.value, 
                                              #site='HAWQi', 
@@ -114,6 +124,8 @@ serverCheckMeasurements = tsu.getMeasurementList(requestType='Hilltop',
                                              tstype='All')
 extraCheckMeasurements = list(getOptionList(fieldName='checkMeasurement') - set(serverCheckMeasurements))
 checkMeasurementOptions = widgets.Dropdown(options=(serverCheckMeasurements + extraCheckMeasurements))
+
+
 
 # NEMS Options
 nemsopt = pd.read_csv('NEMS_Continuous_Parameters.csv')
@@ -145,10 +157,11 @@ spikeFailThreshold = widgets.FloatText(value=1,style=style)
 #sDate = widgets.DatePicker(value=pd.to_datetime('2020-01-01'))
 #eDate = widgets.DatePicker(value=pd.to_datetime('2020-02-01'))
 
+#sDate = widgets.DatePicker(value=datetime.strptime("2020-01-01", "%Y-%m-%d"))
+#eDate = widgets.DatePicker(value=datetime.strptime("2020-02-01", "%Y-%m-%d"))
 
-sDate = widgets.DatePicker(value=datetime.strptime("2020-01-01", "%Y-%m-%d"))
-eDate = widgets.DatePicker(value=datetime.strptime("2020-02-01", "%Y-%m-%d"))
-
+sDate = widgets.DatePicker(value=datetime.strptime(config.startDate, "%Y-%m-%d"))
+eDate = widgets.DatePicker(value=datetime.strptime(config.endDate, "%Y-%m-%d"))
 
 # Processing Options
 interpolationFlag = widgets.Checkbox(value=False, description='Interpolate', disabled=False, indent=True)
@@ -156,6 +169,8 @@ interpolationFlag = widgets.Checkbox(value=False, description='Interpolate', dis
 gapThreshold = widgets.IntText(value=10800,style=style)
 interpolationAllowance = widgets.IntText(value=5,style=style)
 
+maxCodeOptions = widgets.Dropdown(options=['600', '500', '400', '200'], 
+                                  value='600')      
 
 # Status
 optStatus = widgets.HTML(value="Default Options")
@@ -178,6 +193,7 @@ def siteSelector(Server, File, Site,Measurement,StartDate,EndDate):
     myEndDate = str(EndDate)
     #if mySite and myMeasurement and myStartDate and myEndDate :
     #    fetchData()
+    
         
         
 def checkSelector(Server, File, Site, Measurement):
@@ -198,14 +214,15 @@ def checkSelector(Server, File, Site, Measurement):
     #    fetchCheckData()
 
 
-def processingSelector(GapThreshold, InterpolationAllowance):
+def processingSelector(GapThreshold, InterpolationAllowance, MaxQCCode):
     #global prInterpolation
     #prInterpolation = Interpolation
     global prGapThreshold
     prGapThreshold = GapThreshold
     global prInterpolationAllowance
     prInterpolationAllowance = InterpolationAllowance
-    
+    global prMaxCode
+    prMaxCode = MaxQCCode
     
 # Define functions that update the site and measurement lists
 
@@ -381,6 +398,11 @@ def updateOptions(change):
         interpolationFlag.value = False if opt_latest['interpolate'].to_string(index=False) == 'False' else True
         gapThreshold.value = opt_latest['processGapThreshold']
         interpolationAllowance.value = opt_latest['processIntAllowance']
+        
+        if 'maxCode' in opt_latest:
+            if not pd.isna(opt_latest['maxCode']).any():    
+                maxCodeOptions.value = opt_latest['maxCode'].to_string(index=False)
+        
     
     checkSiteOptions.disabled = False
     checkMeasurementOptions.disabled = False
@@ -746,7 +768,7 @@ def on_runBtn_clicked(b):
         #p3 = plot_NEMS_results()
         # Map the NEMS Codes and create qc df that is available for later use
         global qc_df
-        temp_df = nq.mapNEMScodes(qc_results=qc_results, data=data)
+        temp_df = nq.mapNEMScodes(qc_results=qc_results, data=data, maxCode=int(maxCodeOptions.value))
         #qc_df = nq.processGaps(data=temp_df, interpolation_time_threshold=(3600*3), interpolation_allowance = 5)
         """
         qc_df = nq.processGaps(data=temp_df, \
@@ -824,7 +846,8 @@ def on_saveBtn_clicked(b):
                spikeFailThreshold.value, \
                interpolationFlag.value, \
                gapThreshold.value, \
-               interpolationAllowance.value]
+               interpolationAllowance.value, \
+               maxCodeOptions.value]
     #print(optList)
     #"""
     with open('optionsList.csv', mode='a', newline='') as options_list:

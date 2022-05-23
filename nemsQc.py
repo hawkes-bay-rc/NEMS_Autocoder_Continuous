@@ -528,7 +528,23 @@ def writeHilltopCsv(data, outOption='Clean'):
 
 
 # New NEMS Code mapping
-def mapNEMScodes(qc_results, data):
+def mapNEMScodes(qc_results, data, maxCode=600):
+    """
+    Combine the data and quality code results and map these to NEMS.
+    
+    Parameters
+    ----------
+    qc_results : pandas dataframe
+        A pandas dataframe of quality coded results, the output from runTests.
+    data : pandas dataframe
+        A pandas dataframe of the data.
+    maxCode : int
+        The maximum NEMS code that can be achieved for the data.
+        
+    -------
+    A pandas dataframe
+        A pandas dataframe of the data coded to NEMS, with flags for all of the tests that have been performed and their results.
+    """
     # Convert qc_results to a dataframe
     qartod_df = pd.DataFrame(qc_results['qartod'], columns=qc_results['qartod'].keys())
     nems_df = pd.DataFrame(qc_results['nems'], columns=qc_results['nems'].keys())
@@ -538,7 +554,11 @@ def mapNEMScodes(qc_results, data):
     mapping_df = pd.read_csv("QC_Mapping.csv", dtype={'aggregate':np.int16, \
                                                       'NEMS_verificationAccuracy':np.int16, \
                                                       'NEMS_aggregate':np.int16, \
-                                                      'QC':np.str})
+                                                      'QC':np.int16})
+    # Adjust mapping based on max code provided
+    mapping_df['QC'].where(mapping_df['QC'] <= maxCode, maxCode, inplace=True)
+    # Convert QC field to string data type.
+    mapping_df = mapping_df.astype({"QC": str}, errors='raise') 
     
     # Join qc_results and mapping table
     full_qcdf = pd.merge(combined_df, mapping_df, how="left", on=["aggregate", "NEMS_verificationAccuracy", "NEMS_aggregate"])

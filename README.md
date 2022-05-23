@@ -6,8 +6,8 @@ description: Automated NEMS Coding of Continuous Data. A Jupyter Notebook and as
 ## QartodNems
 
 ---
-An initial set of scripts for cleaning and coding continuous data to NEMS. 
-Based on Qartod IOOS standards and code with NEMS functions added.
+An initial set of scripts for cleaning and coding continuous data to [NEMS](https://www.nems.org.nz/). 
+Based on [Qartod IOOS standards](https://ioos.noaa.gov/project/qartod/) and code with NEMS functions added.
 
 Current implementation is built to run off Hilltop Timeseries servers, but there are placeholders in the code for other server types to be used to access the data.
 
@@ -17,7 +17,7 @@ Generates a csv output that can be imported into Hilltop databases (not tested a
 
 
 ## Usage
-See Installation section for details of installing the files and dependencies.
+See Installation section for details of installing the files and dependencies.  Configuration of the starting options is from config.py.
 
 ### Starting 
 Open the miniconda command prompt and navigate to the directory containing the files.  You'll need to activate the environment in order for the scripts to work.
@@ -67,19 +67,16 @@ The environment.yml file provides a list of the packages that need to be install
 
 ### Data Files
 
+config.py - configuration options for the notebook interface (including which are the default servers)
 
+tsData_utils.py - functions to get sites available, measurements at a site and data, a wrapper around individual server access functions, intended to make it easier to add other server types.
+nemsQc.py - functions to clean and code datasets to NEMS
+prefillNotebook.py - functions to help with the notebook implementation
+tsAnalysis.py - functions to support the analysis notebook data analysis and display.
 
-
-
-### Configuration Files
-
-These files allow some customisation of the app.
-
-#### WQMeasurements.csv
-
-
-
-
+Other files, these are not used in the current implementation, but are included for reference and in case they need to be resurected.
+web_service.py - copy of hilltoppy webservice module.  Was used prior to hilltoppy update.
+HBqartod.py - copy of ioos quartod module, but with a median spike detection algorithm added, was going to be suggested back to ioos, but not in line with their spec, and they added a new method that works just as well.
 
 ## Installation
 The ioos-qc package now has a requirement for geopandas.  There are known problems installing this on a Windows machine due to dependencies and setup requirements.
