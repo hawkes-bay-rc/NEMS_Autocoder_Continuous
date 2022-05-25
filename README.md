@@ -23,9 +23,11 @@ See Installation section for details of installing the files and dependencies.  
 Open the miniconda command prompt and navigate to the directory containing the files.  You'll need to activate the environment in order for the scripts to work.
 
 #### Activate the environment
-To activate the environment (make it so that scripts run use the environment and packages in it)
+To activate the environment (make it so that scripts run use the environment and packages in it).
 
 `conda activate ioos_nems`
+
+Note: The above assumes that the environment name is ioos_nems, this is set when the environment is created from the environment.yml file, see the Installation section. 
 
 #### Start the notebook
 Once the environement is active start the jupyter notebook by entering
@@ -67,6 +69,10 @@ The environment.yml file provides a list of the packages that need to be install
 
 ### Data Files
 
+optionsList.csv - Holds the saved options for site measurement combinations.  It is a running list, and the most recent entry for a site and measurement provides the values to display.
+NEMS_Continuous_Parameters.csv - A codified version of NEMS standards, provides the reference data for the NEMS tests.
+QC_Mapping.csv - A mapping table to determine how NEMS codes get assigned based on the test results.
+
 config.py - configuration options for the notebook interface (including which are the default servers)
 
 tsData_utils.py - functions to get sites available, measurements at a site and data, a wrapper around individual server access functions, intended to make it easier to add other server types.
@@ -82,7 +88,7 @@ HBqartod.py - copy of ioos quartod module, but with a median spike detection alg
 The ioos-qc package now has a requirement for geopandas.  There are known problems installing this on a Windows machine due to dependencies and setup requirements.
 The recommended installation method is using conda.
 
-The environment.yml file provides the information required to setup an ioos_nems environment that will allow the qartodNems notebooks and scripts to run.
+The environment.yml file provides the information required to setup an ioos_nems environment that will allow the qartodNems notebooks and scripts to run.  The environemnt name can be changed by editing the yml file.
 
 1. Install miniconda (with python version 3.8) [Miniconda Installers](https://docs.conda.io/en/latest/miniconda.html)
 2. Clone or download this repository to your local machine.
