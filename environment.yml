@@ -3,25 +3,27 @@ channels:
     - conda-forge
     - mullenkamp
 dependencies:
+    - notebook<=6.4.8
     - geojson
     - netCDF4
     - numba
     - numpy
     - pygc
     - ruamel.yaml
+    - scipy
     - shapely
     - simplejson
     - xarray<2022.3.0
-    - pandas
+    - pandas<=1.4.3
     - requests
     - bs4
     - lxml
     - gsw
     - ipywidgets
-    - bokeh
+    - bokeh<=2.4.3
     - ipydatetime
     - hilltop-py==1.5.0
-    - ioos_qc
+    - ioos_qc<=2.0.1
     # if conda version of ioos_qc behind pip can use pip
     #- pip:
     #  - ioos-qc

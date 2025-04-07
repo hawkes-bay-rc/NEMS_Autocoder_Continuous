@@ -20,7 +20,7 @@ serverFile ="Telemetry.hts"
 # The default site to show, needs to be available from the default server files, otherwise there will be errors showing the measurement list.
 defaultSite ='HAWQi'
 
-#This is the file that containst the check data
+#This is the file that contains the check data
 checkFile ="EMARContinuousCheck.hts"
 
 # The default start date to show

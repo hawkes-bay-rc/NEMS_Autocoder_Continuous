@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 
 from collections import OrderedDict
 
+from pathlib import Path
+
 #Get Qartod
 # Temporary change to allow modifying spike detection algorithm
 from ioos_qc import qartod
@@ -520,8 +522,14 @@ def writeHilltopCsv(data, outOption='Clean'):
         # outData = outData[['DateTime','Site', 'Measurement','Value','QC']]
         # outData = outData[['timestamp','Measurement','Value','QC','Comment', 'Action']] #reorganising the column position
         # Output the data
+        # Get the site name to append to the base filename
+        sitename = data['Site'].iloc[0]
         statmsg = "Saving to csv"
-        outData.to_csv('QartodOutput.csv',index=False) 
+        currentDirectory = Path(__file__).parent
+        filename = sitename + '_QartodOutput.csv'
+        filePath = currentDirectory / 'Outputs' / filename
+        #print(filePath)
+        outData.to_csv(filePath,index=False) 
     except:
         print("Please view the NEMS code graph first and make sure the output csv file is not open")
         #print(statmsg)

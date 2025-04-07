@@ -59,7 +59,7 @@ def getMeasurementList(requestType='Hilltop', base_url=None, file=None, site=Non
         try:
             measurementList = ws.measurement_list(base_url=base_url, 
                                                   hts=file, 
-                                                  site=site, 
+                                                  site=site,
                                                   tstype=tstype).index.get_level_values('Measurement').tolist()
             return measurementList
         except:
