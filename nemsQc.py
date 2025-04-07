@@ -687,7 +687,7 @@ def processGaps(data, interpolate_values, gap_time_threshold): # interpolation_t
     # Add an empty Gap Column
     data['Gap'] = ''
     # Append the blankDf
-    data = data.append(blankDf)
+    data = pd.concat([data, blankDf])
     data.sort_index(inplace = True)
     
     # Return the dataframe
