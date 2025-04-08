@@ -253,7 +253,8 @@ def processCheckData(checkData, data, nemsConfig):
     if not accuracyCheck.empty:
         return accuracyCheck  
     else:
-        return None
+        #return None
+        return accuracyCheck
 
 
 def nemsGapTest(data, nemsConfig):
@@ -401,6 +402,7 @@ def nemsVerificationAccuracyTest(data, accuracyCheck, nemsConfig):
     # Get the NEMS Standard
     nemsStandard = nemsConfig['NEMS_Standard'].iloc[0]
     #TODO if no check data get an error
+    #if nemsStandard != 'Not Available' and accuracyCheck != None:
     if nemsStandard != 'Not Available' and not accuracyCheck.empty:
     #if nemsStandard != 'Not Available' and not checkData.empty:
         # Need a value for the mapping to work, set to good for now
@@ -493,8 +495,11 @@ def runTests(data, checkData, chkStartDate, qc_config, nemsConfig):
     qc_results['nems']['NEMS_aggregate'] = qartod.qartod_compare([qc_results['nems']['NEMS_gapData'],
                                                                   qc_results['nems']['NEMS_resolution'],
                                                                   qc_results['nems']['NEMS_verificationFreq']])
+    
+    
 
     return qc_results
+    
 
     
 def writeHilltopCsv(data, outOption='Clean'):
@@ -813,8 +818,8 @@ def configParams_Q(grossRangeFailBelow,
             "fail_threshold": spikeFailThreshold, #3
             "method": 'differential',
             #"method": 'median',
-          },
-          "aggregate": {}
+          }#,
+          #"aggregate": {}
         }
     }
     return qc_config

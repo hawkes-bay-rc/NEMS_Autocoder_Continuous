@@ -87,13 +87,13 @@ measurementOptions = widgets.Dropdown(options=tsu.getMeasurementList(requestType
 
 def getOptionList(fieldName='Site'):
     #Takes a type of Site, Measurement, CheckSite or CheckMeasurement and returns a list of distinct values from the optionsList
-    if fieldName in ['Site', 'Measurement', 'checkSite', 'checkMeasurement']:
+    if fieldName in ['Site', 'Measurement', 'checkSite', 'checkMeasurement','checkSite2', 'checkMeasurement2']:
         #Import the options list
         optionsList = pd.read_csv('optionsList.csv')
         # Get the list of unique values from the column.
         return set(optionsList[fieldName].dropna().tolist())
     else:
-        raise NameError('Acceptable fieldNames are Site, Measurement, checkSite, checkMeasurement.')
+        raise NameError('Acceptable fieldNames are Site, Measurement, checkSite, checkMeasurement, checkSite2, checkMeasurement2.')
 
   
 checkServerOptions = widgets.Text(value=serverOptions.value, description="Server")
@@ -124,6 +124,38 @@ serverCheckMeasurements = tsu.getMeasurementList(requestType=config.requestType,
                                              tstype='All')
 extraCheckMeasurements = list(getOptionList(fieldName='checkMeasurement') - set(serverCheckMeasurements))
 checkMeasurementOptions = widgets.Dropdown(options=(serverCheckMeasurements + extraCheckMeasurements))
+
+# Add options for a second check measurement, could be from a different service, set to blank for all
+checkServerOptions2 = widgets.Text(value="", description="Server")
+checkFileOptions2 = widgets.Text(value="", description="File")
+
+# Check if there is a second check measurement server and file, if not default to blank lists
+if(checkServerOptions2 == "" or checkFileOptions2 ==""):
+    #set options to blank lists
+    #serverCheckSites2 = [""]
+    #extraCheckSites2 = [""]
+    # Site list 
+    checkSiteOptions2 = widgets.Dropdown(options=[""], value="")
+    #serverCheckMeasurements2 = [""]
+    #extraCheckMeasurements = [""]
+    # Measurement list
+    checkMeasurementOptions2 = widgets.Dropdown(options=[""])
+else:
+    #Get list for sites list drop down
+    serverCheckSites2 = tsu.getSiteList(requestType=config.requestType, base_url=checkServerOptions2.value, file=checkFileOptions2.value) 
+    extraCheckSites2 = list(getOptionList(fieldName='checkSite2') - set(serverCheckSites))
+    # Site list 
+    checkSiteOptions2 = widgets.Dropdown(options=(serverCheckSites2 + extraCheckSites2))
+    #Get list options for second check measurement
+    serverCheckMeasurements2 = tsu.getMeasurementList(requestType=config.requestType, 
+                                             base_url=checkServerOptions2.value, 
+                                             file=checkFileOptions2.value, 
+                                             #site='HAWQi', 
+                                             site=checkSiteOptions2.value,
+                                             tstype='All')
+    extraCheckMeasurements2 = list(getOptionList(fieldName='checkMeasurement2') - set(serverCheckMeasurements2))
+    # Measurement list
+    checkMeasurementOptions2 = widgets.Dropdown(options=(serverCheckMeasurements2 + extraCheckMeasurements2))
 
 
 
@@ -176,7 +208,7 @@ maxCodeOptions = widgets.Dropdown(options=['600', '500', '400', '200'],
 optStatus = widgets.HTML(value="Default Options")
 
 
-
+# Define a data Selector for use in the Jupyter Notebook
 def siteSelector(Server, File, Site,Measurement,StartDate,EndDate):
     global myServer
     myServer = Server
@@ -195,7 +227,7 @@ def siteSelector(Server, File, Site,Measurement,StartDate,EndDate):
     #    fetchData()
     
         
-        
+#Define a check data selector for use in the Jupyter Notebook       
 def checkSelector(Server, File, Site, Measurement):
     global chServer
     chServer = Server
@@ -213,6 +245,19 @@ def checkSelector(Server, File, Site, Measurement):
     #if chSite and chMeasurement and myStartDate and myEndDate :
     #    fetchCheckData()
 
+    
+#Define a secod check data selector for use in the Jupyter Notebook, assume same server     
+def checkSelector2(File, Site, Measurement):
+    #global chServer
+    #chServer = Server
+    global chFile2
+    chFile2 = File
+    global chSite2
+    chSite2 = Site
+    #print('please wait for the right options to load')
+    global chMeasurement2
+    chMeasurement2 = Measurement
+    
 
 def processingSelector(GapThreshold, InterpolationAllowance, MaxQCCode):
     #global prInterpolation
@@ -322,6 +367,63 @@ def updateCheckMsmt(change):
     checkMeasurementOptions.disabled = False
     runBtn.disabled = False
 
+    
+def updateCheckSites2(change):
+    if change['old'] == change['new']:
+        return
+    checkSiteOptions2.disabled = True
+    runBtn.disabled = True
+    # checksitedf = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)
+    # checksitelist = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)['SiteName'].tolist()
+    checksitelist2 = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions2.value)
+    checkSiteOptions2.index = None
+    #checkSiteOptions.options = checksitedf['SiteName'].tolist()
+    # The sites and or measurements can have [] in them so create variable to allow combination
+    extraCheckSites2 = list(getOptionList(fieldName='checkSite2') - set(checksitelist2))
+    checkSiteOptions2.options = checksitelist2 + extraCheckSites2
+    if "HAWQi" in checkSiteOptions2.options:
+        checkSiteOptions2.value = "HAWQi"
+    
+    checkSiteOptions2.disabled = False
+    runBtn.disabled = False
+
+
+
+def updateCheckMsmt2(change):
+    if change['old'] == change['new']:
+        return
+    checkMeasurementOptions2.disabled = True
+    runBtn.disabled = True
+    
+    #measurementOptions.options = measList(siteOptions.value)
+    #measdf = ws.measurement_list(base_url, hts, siteOptions.value)
+    if checkSiteOptions2.value:
+        #checkmeasdf = ws.measurement_list(base_url=checkServerOptions.value, 
+        #                                  hts=checkFileOptions.value, 
+        #                                  site=checkSiteOptions.value, 
+        #                                  tstype='All')
+        #checkmeaslist = ws.measurement_list(base_url=checkServerOptions.value, 
+        #                                  hts=checkFileOptions.value, 
+        #                                  site=checkSiteOptions.value, 
+        #                                  tstype='All').index.get_level_values('Measurement').tolist()
+        checkmeaslist2 = tsu.getMeasurementList(requestType='Hilltop', 
+                                           base_url=checkServerOptions.value, 
+                                           file=checkFileOptions2.value, 
+                                           #site='HAWQi', 
+                                           site=checkSiteOptions2.value,
+                                           tstype='All')
+        checkMeasurementOptions2.index = None
+        #checkMeasurementOptions.options = checkmeasdf.index.get_level_values('Measurement').tolist()
+        extraCheckMeasurements = list(getOptionList(fieldName='checkMeasurement2') - set(checkmeaslist2))
+        checkMeasurementOptions2.options = checkmeaslist2 + extraCheckMeasurements2
+    else:
+        #If no site set measurement to blank
+        checkMeasurementOptions2.index = None
+    
+    checkMeasurementOptions2.disabled = False
+    runBtn.disabled = False
+    
+    
 """    
 def updateRange(*args):
     grfbVal, grfaVal, grsbVal, grsaVal = getMsmtPDist(siteOptions.value,
@@ -380,6 +482,12 @@ def updateOptions(change):
             checkSiteOptions.value = opt_latest['checkSite'].to_string(index=False) 
         if not pd.isna(opt_latest['checkMeasurement']).any():    
             checkMeasurementOptions.value = opt_latest['checkMeasurement'].to_string(index=False) 
+        if not pd.isna(opt_latest['checkFile2']).any():    
+            checkFileOptions2.value = opt_latest['checkFile2'].to_string(index=False) 
+        if not pd.isna(opt_latest['checkSite2']).any():    
+            checkSiteOptions2.value = opt_latest['checkSite2'].to_string(index=False) 
+        if not pd.isna(opt_latest['checkMeasurement2']).any():    
+            checkMeasurementOptions2.value = opt_latest['checkMeasurement2'].to_string(index=False) 
         nemsStd.value = opt_latest['nemsStandard'].to_string(index=False)  
         #resolution.value = opt_latest['resolution']
         #timeGap.value = opt_latest['timeGap']
@@ -417,6 +525,9 @@ measurementOptions.observe(updateOptions)
 
 checkFileOptions.observe(updateCheckSites, 'value')    
 checkSiteOptions.observe(updateCheckMsmt, 'value')
+
+checkFileOptions2.observe(updateCheckSites2, 'value')    
+checkSiteOptions2.observe(updateCheckMsmt2, 'value')
 
 #siteOptions.change(updateMsmt)
 #measurementOptions.change(updateOptions)
@@ -476,7 +587,7 @@ def plotStats(qc_results, std='qartod'):
     return p
 
 
-def plot_results(data, title, test_name):
+def plot_results(data, title, test_name, chkdata = None):
     if data.empty:
     #if qc_df.empty:
         print("Plot has no data associated with it")
@@ -640,22 +751,25 @@ def doOverallPlots(x="All Data"):
     try:
         if x=="All Data":
             # NEMS Plot, all data
-            plot_NEMS_results(data=qc_df, data_set="all")
+            plot_NEMS_results(data=qc_df, data_set="all", chkData=checkData)
             
         elif x=="Clean Data":
             # NEMS Plot, all data
-            plot_NEMS_results(data=qc_df, data_set="clean")
+            plot_NEMS_results(data=qc_df, data_set="clean", chkData=checkData)
         
 
     except Exception as e :
         print("Please run the tests first, thanks",e)
         
 
-def plot_NEMS_results(data, data_set):
+def plot_NEMS_results(data, data_set, chkData=pd.DataFrame()):
     if data.empty: # == None:
         print("Please run the code first")
         return
-    #global qc_df    
+    #global qc_df   
+    
+    if chkData.empty: #== None:
+        chkData = pd.DataFrame(columns=['DateTime', 'Measurement', 'Value'])
     
     try:
         #qc_df = mapNEMScodes()
@@ -674,6 +788,7 @@ def plot_NEMS_results(data, data_set):
             print("Valid options are 'all' or 'clean'.  Showing all results.")
         
         source = ColumnDataSource(data=plotting_df)
+        chkSource = ColumnDataSource(data=chkData[['DateTime', 'Value']].copy())
         
         qc_cmap = factor_cmap('QC', \
                               palette=['#8B5A00', '#D3D3D3', '#FFA500', '#00BFFF', '#006400'], \
@@ -708,6 +823,9 @@ def plot_NEMS_results(data, data_set):
         p1.circle(x = 'DateTime', y='Value', size=4, legend_field='Action', color='#800080' , alpha=1, 
                   source=ColumnDataSource(data=plotting_df[plotting_df['Action']=="Drop"].dropna()))
         
+        p1.cross(x = 'DateTime', y='Value', size=4, legend_label='Check', color='black' , alpha=1, 
+                  source=chkSource)
+        
         p1.add_tools(HoverTool(tooltips=TOOLTIPS, formatters={'@DateTime': 'datetime', }))
         global nem
         nem = show(gridplot([[p1]], ), notebook_handle=True) #plot_width=800, plot_height=400))
@@ -722,7 +840,7 @@ def on_runBtn_clicked(b):
         print("Please note that data is pulled pulled out live from the server and be patient.")
         #qb.runTests()
         #global data
-        #global checkData
+        global checkData
         data = tsu.getData(requestType='Hilltop', 
                    base_url=serverOptions.value, 
                    file=fileOptions.value, 
@@ -736,14 +854,40 @@ def on_runBtn_clicked(b):
         # fetchCheckData()
         # Set check start date 3 months earlier than myStartDate
         chkStartDate = ((pd.to_datetime(str(sDate.value)) - pd.to_timedelta('90 days'))).strftime(format='%Y-%m-%d')
-    
-        checkData = tsu.getData(requestType='Hilltop', 
+        
+        #Bring in check data from primary and secondary and combine.
+        checkData1 = tsu.getData(requestType='Hilltop', 
                             base_url=checkServerOptions.value, 
                             file=checkFileOptions.value, 
                             site=checkSiteOptions.value, 
                             measurement = checkMeasurementOptions.value, 
                             from_date=chkStartDate, 
                             to_date=str(eDate.value))
+        
+        # Get secondary check data if available
+        if(checkFileOptions2.value == "" or checkSiteOptions2.value == "" or checkMeasurementOptions2.value == ""):
+            checkData2 = pd.DataFrame()
+        else:
+            checkData2 = tsu.getData(requestType='Hilltop', 
+                                base_url=checkServerOptions.value, 
+                                file=checkFileOptions2.value, 
+                                site=checkSiteOptions2.value, 
+                                measurement = checkMeasurementOptions2.value, 
+                                from_date=chkStartDate, 
+                                to_date=str(eDate.value))
+            
+        #Combine the check datasets to a single check dataset.
+        if(checkData2.empty):
+            #No secondary check data so just use primary
+            checkData = checkData1
+        else:
+            #Join the check datasets together and then order by DateTime
+            checkData = pd.concat([checkData1, checkData2], ignore_index=True, sort=False)
+            # Use DateTime as the index and sort it
+            #checkData.set_index('DateTime', inplace = True)
+            #checkData.sort_index(inplace = True)
+        
+        
         
         qc_config = nq.configParams_Q(grossRangeFailBelow=grfbSlot.value,
                                      grossRangeFailAbove=grfaSlot.value,
@@ -760,6 +904,7 @@ def on_runBtn_clicked(b):
         nemsConfig = nq.configParams_N(nemsStd=nemsStd.value)
         global qc_results
         qc_results = nq.runTests(data=data, checkData=checkData, chkStartDate=chkStartDate, qc_config=qc_config, nemsConfig=nemsConfig)
+        #print(data.head())
         
         p1 = plotStats(qc_results=qc_results, std='qartod')
         #print(data.head())
@@ -829,6 +974,9 @@ def on_saveBtn_clicked(b):
                checkFileOptions.value, \
                checkSiteOptions.value, \
                checkMeasurementOptions.value, \
+               checkFileOptions2.value, \
+               checkSiteOptions2.value, \
+               checkMeasurementOptions2.value, \
                nemsStd.value, \
                #resolution.value, \
                #timeGap.value, \
