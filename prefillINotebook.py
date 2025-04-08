@@ -587,10 +587,13 @@ def plotStats(qc_results, std='qartod'):
     return p
 
 
-def plot_results(data, title, test_name, chkdata = None):
+def plot_results(data, title, test_name, chkData=pd.DataFrame()):
     if data.empty:
     #if qc_df.empty:
         print("Plot has no data associated with it")
+        
+    if chkData.empty: #== None:
+        chkData = pd.DataFrame(columns=['DateTime', 'Measurement', 'Value'])
         
     # Create a plotting dataframe
     plot_df = data[['DateTime', 'Measurement', 'Value', 'OriginalValue', test_name]].copy()
@@ -603,6 +606,7 @@ def plot_results(data, title, test_name, chkdata = None):
     #print(plot_df.dtypes)
     #print(plot_df.head())
     source = ColumnDataSource(data=plot_df)
+    chkSource = ColumnDataSource(data=chkData[['DateTime', 'Value']].copy())
     
     measurementName = plot_df['Measurement'][0]
     
@@ -633,6 +637,8 @@ def plot_results(data, title, test_name, chkdata = None):
 
     p1.line(x = 'DateTime', y = 'OriginalValue',  legend_label='Data', color='#A6CEE3', source=source)
     p1.circle(x = 'DateTime', y='OriginalValue', size=2, legend_field='QualityFlag', color=result_cmap, alpha=1, source=source)
+    p1.cross(x = 'DateTime', y='Value', size=4, legend_label='Check', color='black' , alpha=1, 
+                  source=chkSource)
         
     p1.add_tools(HoverTool(tooltips=TOOLTIPS, formatters={'@DateTime': 'datetime', }))
     global res    
@@ -732,10 +738,10 @@ def doNemsPlots(x="gap data"):
             plot_results(data=qc_df, title=title, test_name='NEMS_resolution')
         elif x=="verification frequency":
             title = "NEMS verification frequency - "+siteOptions.value+" HBRC"
-            plot_results(data=qc_df, title=title, test_name='NEMS_verificationFreq')
+            plot_results(data=qc_df, title=title, test_name='NEMS_verificationFreq', chkData=checkData)
         elif x=="verification accuracy":
             title = "NEMS verification accuracy - "+siteOptions.value+" HBRC"
-            plot_results(data=qc_df, title=title, test_name='NEMS_verificationAccuracy')
+            plot_results(data=qc_df, title=title, test_name='NEMS_verificationAccuracy', chkData=checkData)
             
             #if extraPlotsPlease != None :
             #    qb.doExtraPlots(extraPlotsPlease, extraPlotData)        
