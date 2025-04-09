@@ -125,12 +125,21 @@ serverCheckMeasurements = tsu.getMeasurementList(requestType=config.requestType,
 extraCheckMeasurements = list(getOptionList(fieldName='checkMeasurement') - set(serverCheckMeasurements))
 checkMeasurementOptions = widgets.Dropdown(options=(serverCheckMeasurements + extraCheckMeasurements))
 
+#Secondary Check Data Checkbox
+chk2Box = widgets.Checkbox(
+    value=False,
+    description='Extra Check Data',
+    disabled=False,
+    indent=False
+)
+
 # Add options for a second check measurement, could be from a different service, set to blank for all
 checkServerOptions2 = widgets.Text(value="", description="Server")
 checkFileOptions2 = widgets.Text(value="", description="File")
 
 # Check if there is a second check measurement server and file, if not default to blank lists
-if(checkServerOptions2 == "" or checkFileOptions2 ==""):
+if(checkServerOptions2.value == "" or checkFileOptions2.value =="" or checkFileOptions2.value == None):
+    
     #set options to blank lists
     #serverCheckSites2 = [""]
     #extraCheckSites2 = [""]
@@ -140,8 +149,13 @@ if(checkServerOptions2 == "" or checkFileOptions2 ==""):
     #extraCheckMeasurements = [""]
     # Measurement list
     checkMeasurementOptions2 = widgets.Dropdown(options=[""])
+    checkFileOptions2.layout.visibility = 'hidden'
+    checkSiteOptions2.layout.visibility = 'hidden'
+    checkMeasurementOptions2.layout.visibility = 'hidden'
+    chk2Box.value = False
 else:
     #Get list for sites list drop down
+    
     serverCheckSites2 = tsu.getSiteList(requestType=config.requestType, base_url=checkServerOptions2.value, file=checkFileOptions2.value) 
     extraCheckSites2 = list(getOptionList(fieldName='checkSite2') - set(serverCheckSites))
     # Site list 
@@ -156,6 +170,7 @@ else:
     extraCheckMeasurements2 = list(getOptionList(fieldName='checkMeasurement2') - set(serverCheckMeasurements2))
     # Measurement list
     checkMeasurementOptions2 = widgets.Dropdown(options=(serverCheckMeasurements2 + extraCheckMeasurements2))
+    chk2Box.value = True
 
 
 
@@ -206,6 +221,7 @@ maxCodeOptions = widgets.Dropdown(options=['600', '500', '400', '200'],
 
 # Status
 optStatus = widgets.HTML(value="Default Options")
+
 
 
 # Define a data Selector for use in the Jupyter Notebook
@@ -310,6 +326,23 @@ def updateMsmt(change):
                                       file=fileOptions.value, 
                                       site=siteOptions.value)
         measurementOptions.options = measlist
+        
+        #Modify check measurement too
+        if siteOptions.value in checkSiteOptions.options:
+            # Set site to the same as the data one
+            checkSiteOptions.value = siteOptions.value
+        else:
+            # Set the site blank
+            checkSiteOptions.value = None
+            
+        #Modify secondary check measurement too
+        if siteOptions.value in checkSiteOptions2.options:
+            # Set site to the same as the data one
+            checkSiteOptions2.value = siteOptions.value
+        else:
+            # Set the file and site blank
+            checkFileOptions2.value = ""
+            checkSiteOptions2.value = None
     
     measurementOptions.disabled = False
     runBtn.disabled = False
@@ -375,14 +408,17 @@ def updateCheckSites2(change):
     runBtn.disabled = True
     # checksitedf = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)
     # checksitelist = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)['SiteName'].tolist()
-    checksitelist2 = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions2.value)
-    checkSiteOptions2.index = None
-    #checkSiteOptions.options = checksitedf['SiteName'].tolist()
-    # The sites and or measurements can have [] in them so create variable to allow combination
-    extraCheckSites2 = list(getOptionList(fieldName='checkSite2') - set(checksitelist2))
-    checkSiteOptions2.options = checksitelist2 + extraCheckSites2
-    if "HAWQi" in checkSiteOptions2.options:
-        checkSiteOptions2.value = "HAWQi"
+    if checkFileOptions2.value == "" or checkFileOptions2.value == None:
+        checkSiteOptions2.value = None
+    else:
+        checksitelist2 = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions2.value)
+        checkSiteOptions2.index = None
+        #checkSiteOptions.options = checksitedf['SiteName'].tolist()
+        # The sites and or measurements can have [] in them so create variable to allow combination
+        extraCheckSites2 = list(getOptionList(fieldName='checkSite2') - set(checksitelist2))
+        checkSiteOptions2.options = checksitelist2 + extraCheckSites2
+        if "HAWQi" in checkSiteOptions2.options:
+            checkSiteOptions2.value = "HAWQi"
     
     checkSiteOptions2.disabled = False
     runBtn.disabled = False
@@ -398,6 +434,9 @@ def updateCheckMsmt2(change):
     #measurementOptions.options = measList(siteOptions.value)
     #measdf = ws.measurement_list(base_url, hts, siteOptions.value)
     if checkSiteOptions2.value:
+        # Make sure check box ticked, so all visible
+        chk2Box.value = True
+        
         #checkmeasdf = ws.measurement_list(base_url=checkServerOptions.value, 
         #                                  hts=checkFileOptions.value, 
         #                                  site=checkSiteOptions.value, 
@@ -414,7 +453,7 @@ def updateCheckMsmt2(change):
                                            tstype='All')
         checkMeasurementOptions2.index = None
         #checkMeasurementOptions.options = checkmeasdf.index.get_level_values('Measurement').tolist()
-        extraCheckMeasurements = list(getOptionList(fieldName='checkMeasurement2') - set(checkmeaslist2))
+        extraCheckMeasurements2 = list(getOptionList(fieldName='checkMeasurement2') - set(checkmeaslist2))
         checkMeasurementOptions2.options = checkmeaslist2 + extraCheckMeasurements2
     else:
         #If no site set measurement to blank
@@ -452,6 +491,9 @@ def updateOptions(change):
     f = fileOptions.value
     s = siteOptions.value
     m = measurementOptions.value
+    
+    # Change check measurement value to None
+    checkMeasurementOptions.value = None
     
     subset = opt[(opt['Server']==se) & (opt['File']==f) & (opt['Site']==s) & (opt['Measurement']==m)]
     if len(subset) > 0:
@@ -511,12 +553,26 @@ def updateOptions(change):
             if not pd.isna(opt_latest['maxCode']).any():    
                 maxCodeOptions.value = opt_latest['maxCode'].to_string(index=False)
         
+        
     
     checkSiteOptions.disabled = False
     checkMeasurementOptions.disabled = False
     runBtn.disabled = False
     
 
+def updateCheckOptions2(change):
+    if change['old'] == change['new']:
+        return
+    if chk2Box.value:
+        checkFileOptions2.layout.visibility = 'visible'
+        checkSiteOptions2.layout.visibility = 'visible'
+        checkMeasurementOptions2.layout.visibility = 'visible'
+    else:
+        checkFileOptions2.layout.visibility = 'hidden'
+        checkSiteOptions2.layout.visibility = 'hidden'
+        checkMeasurementOptions2.layout.visibility = 'hidden'
+
+    
 fileOptions.observe(updateSites, 'value')    
 siteOptions.observe(updateMsmt, 'value')
 #measurementOptions.observe(updateRange)
@@ -528,6 +584,8 @@ checkSiteOptions.observe(updateCheckMsmt, 'value')
 
 checkFileOptions2.observe(updateCheckSites2, 'value')    
 checkSiteOptions2.observe(updateCheckMsmt2, 'value')
+
+chk2Box.observe(updateCheckOptions2, 'value')
 
 #siteOptions.change(updateMsmt)
 #measurementOptions.change(updateOptions)
@@ -842,8 +900,12 @@ def plot_NEMS_results(data, data_set, chkData=pd.DataFrame()):
 
 def on_runBtn_clicked(b):
     output.clear_output()
+    # Data Status
+    
     with output:
-        print("Please note that data is pulled pulled out live from the server and be patient.")
+        dataStatus = widgets.HTML(value="Retrieving Data.  Please note that data is pulled pulled out live from the server and be patient.")
+        display(dataStatus)
+        #print("Please note that data is pulled pulled out live from the server and be patient.")
         #qb.runTests()
         #global data
         global checkData
@@ -912,48 +974,58 @@ def on_runBtn_clicked(b):
         qc_results = nq.runTests(data=data, checkData=checkData, chkStartDate=chkStartDate, qc_config=qc_config, nemsConfig=nemsConfig)
         #print(data.head())
         
-        p1 = plotStats(qc_results=qc_results, std='qartod')
-        #print(data.head())
-        p2 = plotStats(qc_results=qc_results, std='nems')
+        if qc_results != None:
+            if checkData.empty:
+                dataStatus.value = '<b style="color:orange;">Data retrieved, but no check data available.  Max code will be 400.  Consider changing time range or check data source and rerunning.<b>'
+            else:
+                dataStatus.value = '<b style="color:green;">Data and check data retrieved.<b>'
+                
+            p1 = plotStats(qc_results=qc_results, std='qartod')
+            #print(data.head())
+            p2 = plotStats(qc_results=qc_results, std='nems')
     
-        #p3 = plot_NEMS_results()
-        # Map the NEMS Codes and create qc df that is available for later use
-        global qc_df
-        temp_df = nq.mapNEMScodes(qc_results=qc_results, data=data, maxCode=int(maxCodeOptions.value))
-        #qc_df = nq.processGaps(data=temp_df, interpolation_time_threshold=(3600*3), interpolation_allowance = 5)
-        """
-        qc_df = nq.processGaps(data=temp_df, \
-                               interpolate_values=interpolationFlag.value, \
-                               interpolation_time_threshold=int(gapThreshold.value), \
-                               interpolation_allowance = int(interpolationAllowance.value))
-        """
+            #p3 = plot_NEMS_results()
+            # Map the NEMS Codes and create qc df that is available for later use
+            global qc_df
+            temp_df = nq.mapNEMScodes(qc_results=qc_results, data=data, maxCode=int(maxCodeOptions.value))
+            #qc_df = nq.processGaps(data=temp_df, interpolation_time_threshold=(3600*3), interpolation_allowance = 5)
+            """
+            qc_df = nq.processGaps(data=temp_df, \
+                                   interpolate_values=interpolationFlag.value, \
+                                   interpolation_time_threshold=int(gapThreshold.value), \
+                                   interpolation_allowance = int(interpolationAllowance.value))
+            """
         
-        qc_df = nq.processGaps(data=temp_df, \
-                               interpolate_values=interpolationFlag.value, \
-                               gap_time_threshold=int(gapThreshold.value))
+            qc_df = nq.processGaps(data=temp_df, \
+                                   interpolate_values=interpolationFlag.value, \
+                                   gap_time_threshold=int(gapThreshold.value))
             
-        show(p1)
-        show(p2)
-        # Added in here so that graphs clear when run button pressed.
+            display(dataStatus)
+            show(p1)
+            show(p2)
+            # Added in here so that graphs clear when run button pressed.
         
-        display(Markdown('## Explore Results.'))
-        display(Markdown('### General Tests.'))
-        display(Markdown('Select the test to see the results as a graph.'))
-        qplot = interactive(doBasePlots, x=["gross range", "flat line", "rate of change","spike","aggregate"], value="gross range")
-        display(qplot)
-        display(Markdown('### NEMS Tests.'))
-        display(Markdown('Select the test to see the results as a graph.'))
-        #interact(qb.doThePlots,x=["gap data","resolution", "verification frequency", "accuracy"])
-        nplot = interactive(doNemsPlots, x=["gap data","resolution", "verification frequency", "verification accuracy"], \
-                            value="gap data")
-        display(nplot)
+            display(Markdown('## Explore Results.'))
+            display(Markdown('### General Tests.'))
+            display(Markdown('Select the test to see the results as a graph.'))
+            qplot = interactive(doBasePlots, x=["gross range", "flat line", "rate of change","spike","aggregate"], value="gross range")
+            display(qplot)
+            display(Markdown('### NEMS Tests.'))
+            display(Markdown('Select the test to see the results as a graph.'))
+            #interact(qb.doThePlots,x=["gap data","resolution", "verification frequency", "accuracy"])
+            nplot = interactive(doNemsPlots, x=["gap data","resolution", "verification frequency", "verification accuracy"], \
+                                value="gap data")
+            display(nplot)
 
-        display(Markdown('### NEMS QC.'))
-        display(Markdown('Graph the coded results.  Choose whether to see all results or just the ones for archiving (clean set).'))
-        #interact(qb.plot_NEMS_results, data_set=widgets.Combobox(options=["all", "clean"], value="all"))
-        #qcplot = interactive(pf.plot_NEMS_results, data_set=["all", "clean"], value="all")
-        oplot = interactive(doOverallPlots, x=["All Data", "Clean Data"], value="All Data")
-        display(oplot)
+            display(Markdown('### NEMS QC.'))
+            display(Markdown('Graph the coded results.  Choose whether to see all results or just the ones for archiving (clean set).'))
+            #interact(qb.plot_NEMS_results, data_set=widgets.Combobox(options=["all", "clean"], value="all"))
+            #qcplot = interactive(pf.plot_NEMS_results, data_set=["all", "clean"], value="all")
+            oplot = interactive(doOverallPlots, x=["All Data", "Clean Data"], value="All Data")
+            display(oplot)
+        else:
+            
+            dataStatus.value = '<b style="color:red;">No data available, change settings and rerun.<b>'
         
         
 def on_analysisBtn_clicked(b):

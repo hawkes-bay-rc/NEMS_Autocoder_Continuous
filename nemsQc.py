@@ -439,8 +439,8 @@ def runTests(data, checkData, chkStartDate, qc_config, nemsConfig):
     
     
     if data.empty:
-        print("No data available")
-        return
+        #print("No data available")
+        return None
     
     if checkData.empty:
         print("No Check Data - Max QC will be 400")
