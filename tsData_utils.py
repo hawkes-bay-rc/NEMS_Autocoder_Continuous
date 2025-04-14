@@ -55,12 +55,21 @@ def getMeasurementList(requestType='Hilltop', base_url=None, file=None, site=Non
     """
     
     if requestType == 'Hilltop':
-        # Do a Hilltop MeasurementList call and extract the site names from it to a list
+        # Do a Hilltop MeasurementList call and extract the measurement names from it to a list
         try:
-            measurementList = ws.measurement_list(base_url=base_url, 
+            measurementDf = ws.measurement_list(base_url=base_url, 
                                                   hts=file, 
                                                   site=site,
-                                                  tstype=tstype).index.get_level_values('Measurement').tolist()
+                                                  tstype=tstype)#.index.get_level_values('Measurement').tolist()
+            #Convert to a standard dataframe, rather than multiindex
+            measDf = pd.DataFrame(measurementDf.to_records())
+            #Sort
+            try:
+                measDf = measDf.sort_values(['TSType', 'Measurement'])
+            except:
+                measDf = measDf.sort_values(['Measurement'])
+            #Convert measurement column to a list
+            measurementList = measDf["Measurement"].tolist()
             return measurementList
         except:
             # There was a problem with the request, return an empty list

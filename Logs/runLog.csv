@@ -1,0 +1,2 @@
+DateTime,Server,File,Site,Measurement,checkServer,checkFile,checkSite,checkMeasurement,checkFile2,checkSite2,checkMeasurement2,nemsStandard,grossRangeFailBelow,grossRangeFailAbove,grossRangeSuspectBelow,grossRangeSuspectAbove,flatLineTolerance,flatLineSuspectThreshold,flatLineFailThreshold,rateOfChangeThreshold,spikeSuspectThreshold,spikeFailThreshold,interpolate,processGapThreshold,processIntAllowance,maxCode,StartTime,EndTime,User
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

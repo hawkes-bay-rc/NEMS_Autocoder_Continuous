@@ -14,11 +14,16 @@ requestType = "Hilltop"
 # This is based off Hilltop type requests / urls
 serverBase ="https://data.hbrc.govt.nz/EnviroData/"
 
+# List of server endpoints that can be used.
+serverList = ["Telemetry.hts", "EMAR.hts", "EMARTest.hts"]
+
 # This is based off the Hilltop url structure.  The serverBase and serverFile when concatonated form the url before the ? in the url request.
 serverFile ="Telemetry.hts"
 
 # The default site to show, needs to be available from the default server files, otherwise there will be errors showing the measurement list.
 defaultSite ='HAWQi'
+
+checkFileList = ["Telemetry.hts", "EMARContinuousCheck.hts", "EMARDiscrete.hts", "EMARDiscreteGood.hts"]
 
 #This is the file that contains the check data
 checkFile ="EMARContinuousCheck.hts"

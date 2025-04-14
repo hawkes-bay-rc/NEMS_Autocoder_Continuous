@@ -7,7 +7,7 @@ import requests
 import xml.etree.ElementTree as ET
 import json
 import csv
-
+import os
 
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure, show, output_notebook
@@ -54,32 +54,95 @@ import nemsQc as nq
 def statusFunction(Status):
     return Status
 
+
+def getDefaults():
+    # Open the run log
+    runs = pd.read_csv('Logs/runLog.csv')
+    # Get the current user
+    user = os.getlogin()
+    # Filter to the latest run for the current user
+    runs = runs[runs['User']==user]
+    latest = runs.tail(1)
+    # If there is a latest run use it, otherwise use config file defaults
+    if len(latest) > 0:
+        defaults = {
+            "server": latest['Server'].to_string(index=False),
+            "file": latest['File'].to_string(index=False),
+            "site": latest['Site'].to_string(index=False),
+            "measurement": latest['Measurement'].to_string(index=False),
+            "startTime": latest['StartTime'].to_string(index=False),
+            "endTime": latest['EndTime'].to_string(index=False),
+            "checkServer": latest['checkServer'].to_string(index=False),
+            "checkFile": latest['checkFile'].to_string(index=False),
+            "checkSite": latest['checkSite'].to_string(index=False),
+            "checkMeasurement": latest['checkMeasurement'].to_string(index=False),
+            "checkServer2": latest['checkServer'].to_string(index=False), # note same as data server
+            "checkFile2": latest['checkFile2'].to_string(index=False),
+            "checkSite2": latest['checkSite2'].to_string(index=False),
+            "checkMeasurement2": latest['checkMeasurement2'].to_string(index=False),
+        }
+    else:
+        defaults = {
+            "server": config.serverBase,
+            "file": config.serverFile,
+            "site": config.defaultSite,
+            "measurement": "",
+            "startTime": config.startDate,
+            "endTime": config.endDate,
+            "checkServer": config.serverBase,
+            "checkFile": config.checkFile,
+            "checkSite": config.defaultSite,
+            "checkMeasurement": "",
+            "checkServer2": "",
+            "checkFile2": "",
+            "checkSite2": "",
+            "checkMeasurement2": "",
+        }
+    
+    return defaults
+
+
+defaults = getDefaults()
+
 qc_df = pd.DataFrame()
 
 # Set the initial options
-serverOptions = widgets.Text(value=config.serverBase, description="Server")
+serverOptions = widgets.Text(value=defaults["server"], description="Server")
+fileOptions = widgets.Dropdown(options=config.serverList, 
+                               value=defaults["file"], 
+                               description="File")
+siteOptions = widgets.Combobox(options=tsu.getSiteList(requestType=config.requestType, 
+                                                   base_url=serverOptions.value, 
+                                                   file=fileOptions.value), 
+                               value=defaults["site"])
+
+
+#serverOptions = widgets.Text(value=config.serverBase, description="Server")
 #serverOptions = widgets.Text(value="https://data.hbrc.govt.nz/EnviroData/", description="Server")
 # fileOptions = widgets.Text(value="EMAR.hts", description="File")
 #fileOptions = widgets.Text(value="Telemetry.hts", description="File")
-fileOptions = widgets.Text(value=config.serverFile, description="File")
+#fileOptions = widgets.Dropdown(options=config.serverList, 
+#                               value=config.serverFile, 
+#                               description="File")
 
 #siteOptions = widgets.Dropdown(options=sites,value="HAWQi")
 #siteOptions = widgets.Dropdown(options=ws.site_list(serverOptions.value, 
 #                                                    fileOptions.value)['SiteName'].tolist(), value='HAWQi')
 #siteOptions = widgets.Dropdown(options=tsu.getSiteList(requestType='Hilltop', 
-siteOptions = widgets.Dropdown(options=tsu.getSiteList(requestType=config.requestType, 
-                                                   base_url=serverOptions.value, 
-                                                   file=fileOptions.value), 
-                               value=config.defaultSite)
+#siteOptions = widgets.Combobox(options=tsu.getSiteList(requestType=config.requestType, 
+#                                                   base_url=serverOptions.value, 
+#                                                   file=fileOptions.value), 
+#                               value=config.defaultSite)
 #                               value='HAWQi')
 #measurementOptions = widgets.Dropdown(options=ws.measurement_list(serverOptions.value, 
 #                                                                  fileOptions.value, 
 #                                                                  site='HAWQi').index.get_level_values('Measurement').tolist())
 #measurementOptions = widgets.Dropdown(options=tsu.getMeasurementList(requestType='Hilltop', 
-measurementOptions = widgets.Dropdown(options=tsu.getMeasurementList(requestType=config.requestType, 
+measurementOptions = widgets.Combobox(options=tsu.getMeasurementList(requestType=config.requestType, 
                                                                  base_url=serverOptions.value, 
                                                                  file=fileOptions.value, 
-                                                                 site=siteOptions.value))
+                                                                 site=siteOptions.value)
+                                     ,value = defaults["measurement"])
                                                                   #site='HAWQi')    
 #Check data options
 # Sites and measurements come from optionsList and server calls
@@ -97,7 +160,10 @@ def getOptionList(fieldName='Site'):
 
   
 checkServerOptions = widgets.Text(value=serverOptions.value, description="Server")
-checkFileOptions = widgets.Text(value=config.checkFile, description="File")
+checkFileOptions = widgets.Dropdown(options=config.checkFileList, 
+                                    value=defaults["checkFile"], 
+                                    #value=config.checkFile, 
+                                    description="File")
 #checkFileOptions = widgets.Text(value="EMARContinuousCheck.hts", description="File")
 
 # Need to add the checkSites from the optionsList file here too (without NaN)
@@ -108,7 +174,9 @@ serverCheckSites = tsu.getSiteList(requestType=config.requestType, base_url=chec
 
 extraCheckSites = list(getOptionList(fieldName='checkSite') - set(serverCheckSites))
 #checkSiteOptions = widgets.Dropdown(options=(serverCheckSites + extraCheckSites), value='HAWQi')
-checkSiteOptions = widgets.Dropdown(options=(serverCheckSites + extraCheckSites), value=config.defaultSite)
+checkSiteOptions = widgets.Combobox(options=(serverCheckSites + extraCheckSites), 
+                                    value=defaults["checkSite"])
+                                    #value=config.defaultSite)
 
 # Need to add the checkMeasurements from the optionsList file here too (without NaN)
 #serverCheckMeasurements = ws.measurement_list(checkServerOptions.value, 
@@ -123,7 +191,8 @@ serverCheckMeasurements = tsu.getMeasurementList(requestType=config.requestType,
                                              site=checkSiteOptions.value,
                                              tstype='All')
 extraCheckMeasurements = list(getOptionList(fieldName='checkMeasurement') - set(serverCheckMeasurements))
-checkMeasurementOptions = widgets.Dropdown(options=(serverCheckMeasurements + extraCheckMeasurements))
+checkMeasurementOptions = widgets.Combobox(options=(serverCheckMeasurements + extraCheckMeasurements),
+                                          value=defaults["checkMeasurement"])
 
 #Secondary Check Data Checkbox
 chk2Box = widgets.Checkbox(
@@ -134,8 +203,9 @@ chk2Box = widgets.Checkbox(
 )
 
 # Add options for a second check measurement, could be from a different service, set to blank for all
-checkServerOptions2 = widgets.Text(value="", description="Server")
-checkFileOptions2 = widgets.Text(value="", description="File")
+checkServerOptions2 = widgets.Text(value=defaults["checkServer2"], description="Server")
+
+checkFileOptions2 = widgets.Combobox(options=config.checkFileList, value=defaults["checkFile2"], description="File")
 
 # Check if there is a second check measurement server and file, if not default to blank lists
 if(checkServerOptions2.value == "" or checkFileOptions2.value =="" or checkFileOptions2.value == None):
@@ -144,11 +214,11 @@ if(checkServerOptions2.value == "" or checkFileOptions2.value =="" or checkFileO
     #serverCheckSites2 = [""]
     #extraCheckSites2 = [""]
     # Site list 
-    checkSiteOptions2 = widgets.Dropdown(options=[""], value="")
+    checkSiteOptions2 = widgets.Combobox(options=[""], value="")
     #serverCheckMeasurements2 = [""]
     #extraCheckMeasurements = [""]
     # Measurement list
-    checkMeasurementOptions2 = widgets.Dropdown(options=[""])
+    checkMeasurementOptions2 = widgets.Combobox(options=[""])
     checkFileOptions2.layout.visibility = 'hidden'
     checkSiteOptions2.layout.visibility = 'hidden'
     checkMeasurementOptions2.layout.visibility = 'hidden'
@@ -159,7 +229,7 @@ else:
     serverCheckSites2 = tsu.getSiteList(requestType=config.requestType, base_url=checkServerOptions2.value, file=checkFileOptions2.value) 
     extraCheckSites2 = list(getOptionList(fieldName='checkSite2') - set(serverCheckSites))
     # Site list 
-    checkSiteOptions2 = widgets.Dropdown(options=(serverCheckSites2 + extraCheckSites2))
+    checkSiteOptions2 = widgets.Combobox(options=(serverCheckSites2 + extraCheckSites2))
     #Get list options for second check measurement
     serverCheckMeasurements2 = tsu.getMeasurementList(requestType=config.requestType, 
                                              base_url=checkServerOptions2.value, 
@@ -169,7 +239,7 @@ else:
                                              tstype='All')
     extraCheckMeasurements2 = list(getOptionList(fieldName='checkMeasurement2') - set(serverCheckMeasurements2))
     # Measurement list
-    checkMeasurementOptions2 = widgets.Dropdown(options=(serverCheckMeasurements2 + extraCheckMeasurements2))
+    checkMeasurementOptions2 = widgets.Combobox(options=(serverCheckMeasurements2 + extraCheckMeasurements2))
     chk2Box.value = True
 
 
@@ -207,8 +277,11 @@ spikeFailThreshold = widgets.FloatText(value=1,style=style)
 #sDate = widgets.DatePicker(value=datetime.strptime("2020-01-01", "%Y-%m-%d"))
 #eDate = widgets.DatePicker(value=datetime.strptime("2020-02-01", "%Y-%m-%d"))
 
-sDate = widgets.DatePicker(value=datetime.strptime(config.startDate, "%Y-%m-%d"))
-eDate = widgets.DatePicker(value=datetime.strptime(config.endDate, "%Y-%m-%d"))
+#sDate = widgets.DatePicker(value=datetime.strptime(config.startDate, "%Y-%m-%d"))
+#eDate = widgets.DatePicker(value=datetime.strptime(config.endDate, "%Y-%m-%d"))
+                                                   
+sDate = widgets.DatePicker(value=datetime.strptime(defaults["startTime"].split()[0], "%Y-%m-%d"))
+eDate = widgets.DatePicker(value=datetime.strptime(defaults["endTime"].split()[0], "%Y-%m-%d"))
 
 # Processing Options
 interpolationFlag = widgets.Checkbox(value=False, description='Interpolate', disabled=False, indent=True)
@@ -222,7 +295,8 @@ maxCodeOptions = widgets.Dropdown(options=['600', '500', '400', '200'],
 # Status
 optStatus = widgets.HTML(value="Default Options")
 
-
+defaultSaveStatus = '<b style="color:orange;">Options not saved.<b>'
+saveStatus = widgets.HTML(value=defaultSaveStatus)
 
 # Define a data Selector for use in the Jupyter Notebook
 def siteSelector(Server, File, Site,Measurement,StartDate,EndDate):
@@ -292,7 +366,8 @@ def updateSites(change):
         return
     siteOptions.disabled = True
     runBtn.disabled = True
-    
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     
     sitelist = tsu.getSiteList(requestType='Hilltop', 
                            base_url=serverOptions.value, 
@@ -315,6 +390,8 @@ def updateMsmt(change):
     measurementOptions.disabled = True
     runBtn.disabled = True
     
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     # measurementOptions.options = measList(siteOptions.value)
     # measdf = ws.measurement_list(base_url, hts, siteOptions.value)
     if siteOptions.value:
@@ -333,7 +410,7 @@ def updateMsmt(change):
             checkSiteOptions.value = siteOptions.value
         else:
             # Set the site blank
-            checkSiteOptions.value = None
+            checkSiteOptions.value = ""
             
         #Modify secondary check measurement too
         if siteOptions.value in checkSiteOptions2.options:
@@ -342,7 +419,7 @@ def updateMsmt(change):
         else:
             # Set the file and site blank
             checkFileOptions2.value = ""
-            checkSiteOptions2.value = None
+            checkSiteOptions2.value = ""
     
     measurementOptions.disabled = False
     runBtn.disabled = False
@@ -353,6 +430,8 @@ def updateCheckSites(change):
         return
     checkSiteOptions.disabled = True
     runBtn.disabled = True
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     # checksitedf = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)
     # checksitelist = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)['SiteName'].tolist()
     checksitelist = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions.value)
@@ -374,7 +453,8 @@ def updateCheckMsmt(change):
         return
     checkMeasurementOptions.disabled = True
     runBtn.disabled = True
-    
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     #measurementOptions.options = measList(siteOptions.value)
     #measdf = ws.measurement_list(base_url, hts, siteOptions.value)
     if checkSiteOptions.value:
@@ -406,10 +486,12 @@ def updateCheckSites2(change):
         return
     checkSiteOptions2.disabled = True
     runBtn.disabled = True
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     # checksitedf = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)
     # checksitelist = ws.site_list(base_url=checkServerOptions.value, hts=checkFileOptions.value)['SiteName'].tolist()
     if checkFileOptions2.value == "" or checkFileOptions2.value == None:
-        checkSiteOptions2.value = None
+        checkSiteOptions2.value = ""
     else:
         checksitelist2 = tsu.getSiteList(requestType='Hilltop', base_url=checkServerOptions.value, file=checkFileOptions2.value)
         checkSiteOptions2.index = None
@@ -430,7 +512,8 @@ def updateCheckMsmt2(change):
         return
     checkMeasurementOptions2.disabled = True
     runBtn.disabled = True
-    
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     #measurementOptions.options = measList(siteOptions.value)
     #measdf = ws.measurement_list(base_url, hts, siteOptions.value)
     if checkSiteOptions2.value:
@@ -485,6 +568,9 @@ def updateOptions(change):
     checkSiteOptions.disabled = True
     checkMeasurementOptions.disabled = True
     runBtn.disabled = True
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
+        
     # Read the options from the csv file
     opt = pd.read_csv('optionsList.csv')
     se = serverOptions.value
@@ -492,8 +578,11 @@ def updateOptions(change):
     s = siteOptions.value
     m = measurementOptions.value
     
-    # Change check measurement value to None
-    checkMeasurementOptions.value = None
+    # Change check measurement values to None
+    checkMeasurementOptions.value = ""
+    checkMeasurementOptions2.value = ""
+    checkFileOptions2.value = ""
+    checkSiteOptions2.value = ""
     
     subset = opt[(opt['Server']==se) & (opt['File']==f) & (opt['Site']==s) & (opt['Measurement']==m)]
     if len(subset) > 0:
@@ -563,6 +652,8 @@ def updateOptions(change):
 def updateCheckOptions2(change):
     if change['old'] == change['new']:
         return
+    #Change save status value to default, options changed
+    saveStatus.value = defaultSaveStatus
     if chk2Box.value:
         checkFileOptions2.layout.visibility = 'visible'
         checkSiteOptions2.layout.visibility = 'visible'
@@ -902,6 +993,9 @@ def on_runBtn_clicked(b):
     output.clear_output()
     # Data Status
     
+    #Save to runlog
+    save_options(filename = 'Logs/runLog.csv')
+    
     with output:
         dataStatus = widgets.HTML(value="Retrieving Data.  Please note that data is pulled pulled out live from the server and be patient.")
         display(dataStatus)
@@ -1041,8 +1135,7 @@ def on_analysisBtn_clicked(b):
                        to_date=str(eDate.value))
 
 
-
-def on_saveBtn_clicked(b):
+def save_options(filename):
     optList = [datetime.now().strftime("%d/%m/%Y %H:%M:%S"), \
                serverOptions.value, \
                fileOptions.value, \
@@ -1073,17 +1166,30 @@ def on_saveBtn_clicked(b):
                interpolationFlag.value, \
                gapThreshold.value, \
                interpolationAllowance.value, \
-               maxCodeOptions.value]
-    #print(optList)
-    #"""
-    with open('optionsList.csv', mode='a', newline='') as options_list:
-        options_writer = csv.writer(options_list, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+               maxCodeOptions.value, \
+               sDate.value, \
+               eDate.value, \
+               os.getlogin()]
+    
+    try:
+        with open(filename, mode='a', newline='') as options_list:
+            options_writer = csv.writer(options_list, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-        options_writer.writerow(optList)
-    #  """  
+            options_writer.writerow(optList)
+        saveStatus.value = '<b style="color:green;">Options saved.<b>'
+        # print("Options saved.")
+    except Exception as e :
+        saveStatus.value = '<b style="color:red;">Error saving options, make sure ' + filename + ' is not open.<b>'
+        # print("Error saving options, make sure " + filename + " is not open.")
+        
+        
+def on_saveBtn_clicked(b):
+    save_options(filename = 'optionsList.csv')   
 
     
 def on_outputBtn_clicked(b):
+    # Save the options used for the output
+    save_options(filename = 'optionsList.csv')
     # Write csv file of the results
     nq.writeHilltopCsv(data=qc_df, outOption=outOptions.value)
     
