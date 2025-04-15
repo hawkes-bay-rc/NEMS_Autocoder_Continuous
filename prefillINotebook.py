@@ -786,7 +786,7 @@ def plot_results(data, title, test_name, chkData=pd.DataFrame()):
 
     p1.line(x = 'DateTime', y = 'OriginalValue',  legend_label='Data', color='#A6CEE3', source=source)
     p1.circle(x = 'DateTime', y='OriginalValue', size=2, legend_field='QualityFlag', color=result_cmap, alpha=1, source=source)
-    p1.cross(x = 'DateTime', y='Value', size=4, legend_label='Check', color='black' , alpha=1, 
+    p1.diamond(x = 'DateTime', y='Value', size=4, legend_label='Check', color='black' , alpha=1, 
                   source=chkSource)
         
     p1.add_tools(HoverTool(tooltips=TOOLTIPS, formatters={'@DateTime': 'datetime', }))
@@ -975,10 +975,10 @@ def plot_NEMS_results(data, data_set, chkData=pd.DataFrame()):
         #p1.circle(x = 'DateTime', y='Value', size=2, legend_field='QC', color=qc_cmap , alpha=1, source=source)
         p1.circle(x = 'DateTime', y='Value', size=2, legend_field='QC', color=qc_cmap , alpha=1, \
                   source=ColumnDataSource(data=plotting_df.dropna()))
-        p1.circle(x = 'DateTime', y='Value', size=4, legend_field='Action', color='#800080' , alpha=1, 
+        p1.circle(x = 'DateTime', y='Value', size=3, legend_field='Action', color='#800080' , alpha=1, 
                   source=ColumnDataSource(data=plotting_df[plotting_df['Action']=="Drop"].dropna()))
         
-        p1.cross(x = 'DateTime', y='Value', size=4, legend_label='Check', color='black' , alpha=1, 
+        p1.diamond(x = 'DateTime', y='Value', size=4, legend_label='Check', color='black' , alpha=1, 
                   source=chkSource)
         
         p1.add_tools(HoverTool(tooltips=TOOLTIPS, formatters={'@DateTime': 'datetime', }))
