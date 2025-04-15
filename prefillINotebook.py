@@ -1100,7 +1100,7 @@ def on_runBtn_clicked(b):
             return
         
         #Save to runlog
-        save_options(filename = 'Logs/runLog.csv')
+        save_options(filename = 'Logs/runLog.csv', trigger="Run")
         
         #print("Please note that data is pulled pulled out live from the server and be patient.")
         #qb.runTests()
@@ -1238,7 +1238,7 @@ def on_analysisBtn_clicked(b):
                        to_date=str(eDate.value))
 
 
-def save_options(filename):
+def save_options(filename, trigger="Run"):
     optList = [datetime.now().strftime("%d/%m/%Y %H:%M:%S"), \
                serverOptions.value, \
                fileOptions.value, \
@@ -1272,7 +1272,8 @@ def save_options(filename):
                maxCodeOptions.value, \
                sDate.value, \
                eDate.value, \
-               os.getlogin()]
+               os.getlogin(), \
+               trigger]
     
     try:
         with open(filename, mode='a', newline='') as options_list:
@@ -1287,14 +1288,14 @@ def save_options(filename):
         
         
 def on_saveBtn_clicked(b):
-    save_options(filename = 'optionsList.csv')   
+    save_options(filename = 'optionsList.csv', trigger="Save")   
 
     
 def on_outputBtn_clicked(b):
     # Save the options used for the output
-    save_options(filename = 'optionsList.csv')
+    save_options(filename = 'optionsList.csv', trigger="Output")
     # Write csv file of the results
-    nq.writeHilltopCsv(data=qc_df, outOption=outOptions.value)
+    nq.writeHilltopCsv(data=qc_df, outOption=outOptions.value, dateTime=True)
     
 
 runBtn.on_click(on_runBtn_clicked)

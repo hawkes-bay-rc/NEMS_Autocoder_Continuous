@@ -17,6 +17,8 @@ import numpy as np
 import numpy.ma as ma
 
 import operator
+import time
+
 from datetime import datetime, timedelta
 
 from collections import OrderedDict
@@ -502,7 +504,7 @@ def runTests(data, checkData, chkStartDate, qc_config, nemsConfig):
     
 
     
-def writeHilltopCsv(data, outOption='Clean'):
+def writeHilltopCsv(data, outOption='Clean', dateTime=False):
     #data is the qc_df output from running the test
     try:
         # If outOption is Clean then Subset the dataframe so only values to keep remain.
@@ -531,7 +533,12 @@ def writeHilltopCsv(data, outOption='Clean'):
         sitename = data['Site'].iloc[0]
         statmsg = "Saving to csv"
         currentDirectory = Path(__file__).parent
-        filename = sitename + '_QartodOutput.csv'
+        # Add date to filename if dateTime set to True
+        if dateTime:
+            
+            filename = sitename + '_QartodOutput_' + time.strftime("%Y%m%d_%H%M%S")  +'.csv'
+        else:
+            filename = sitename + '_QartodOutput.csv'
         filePath = currentDirectory / 'Outputs' / filename
         #print(filePath)
         outData.to_csv(filePath,index=False) 

@@ -1,9 +1,9 @@
 NEMS_Standard,BandUpperLimit,ResolutionAllowed,ResolutionDP,Units,MaxRecordInterval_mins,ValidationFrequency_mons,AccuracyToleranceAbs600,AccuracyToleranceAbs500,AccuracyTolerance%600,AccuracyTolerance%500,AccuracyReferenceTolerance%,MinFail,MinSuspect,MaxSuspect,MaxFail,Notes
 Water Temperature - Estuarine,,0.1,1,C,5,2,0.8,1.2,,,0,,,,,
 Water Temperature - Non Estuarine,,0.1,1,C,15,2,0.8,1.2,,,0,,,,,
-DO,1,0.05,2,g/m3,15,,0.3,0.6,,,5,,,10,,NEMS does not specify a validation frequency.
-DO,10,0.1,1,g/m3,15,,0.3,0.6,,,5,,,10,,NEMS does not specify a validation frequency.
-DO,,1,0,g/m3,15,,0.3,0.6,,,5,,,10,,NEMS does not specify a validation frequency.
+DO,1,0.05,2,g/m3,15,,0.3,0.6,,,5,,,,,NEMS does not specify a validation frequency.
+DO,10,0.1,1,g/m3,15,,0.3,0.6,,,5,,,,,NEMS does not specify a validation frequency.
+DO,,1,0,g/m3,15,,0.3,0.6,,,5,,,,,NEMS does not specify a validation frequency.
 DO (sat),10,0.5,1,%,15,,3,6,,,5,,,100,,NEMS does not specify a validation frequency.
 DO (sat),100,1,0,%,15,,3,6,,,5,,,100,,NEMS does not specify a validation frequency.
 DO (sat),,10,-1,%,15,,0,6,,,5,,,100,,NEMS does not specify a validation frequency.
