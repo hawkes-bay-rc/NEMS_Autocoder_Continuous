@@ -80,6 +80,7 @@ def getDefaults():
             "checkFile2": latest['checkFile2'].to_string(index=False),
             "checkSite2": latest['checkSite2'].to_string(index=False),
             "checkMeasurement2": latest['checkMeasurement2'].to_string(index=False),
+            "nemsStandard": latest['nemsStandard'].to_string(index=False)
         }
     else:
         defaults = {
@@ -97,6 +98,7 @@ def getDefaults():
             "checkFile2": "",
             "checkSite2": "",
             "checkMeasurement2": "",
+            "nemsStandard": 'Not Available'
         }
     
     return defaults
@@ -246,7 +248,7 @@ else:
 
 # NEMS Options
 nemsopt = pd.read_csv('NEMS_Continuous_Parameters.csv')
-nemsStd = widgets.Dropdown(options=pd.unique(nemsopt['NEMS_Standard']).tolist(), value='Not Available')
+nemsStd = widgets.Dropdown(options=pd.unique(nemsopt['NEMS_Standard']).tolist(), value=defaults["nemsStandard"])
 #resolution = widgets.IntText(value=1,style=style)
 #timeGap = widgets.IntText(value=15,style=style)
 #accuracyThreshold = widgets.FloatText(value=0.8,style=style)
@@ -578,11 +580,7 @@ def updateOptions(change):
     s = siteOptions.value
     m = measurementOptions.value
     
-    # Change check measurement values to None
-    checkMeasurementOptions.value = ""
-    checkMeasurementOptions2.value = ""
-    checkFileOptions2.value = ""
-    checkSiteOptions2.value = ""
+    
     
     subset = opt[(opt['Server']==se) & (opt['File']==f) & (opt['Site']==s) & (opt['Measurement']==m)]
     if len(subset) > 0:
@@ -641,7 +639,18 @@ def updateOptions(change):
         if 'maxCode' in opt_latest:
             if not pd.isna(opt_latest['maxCode']).any():    
                 maxCodeOptions.value = opt_latest['maxCode'].to_string(index=False)
-        
+    else:
+        # Change check measurement values to None
+        if measurementOptions.value == defaults["measurement"]:
+            checkMeasurementOptions.value = defaults["checkMeasurement"]
+            
+        else:
+            checkMeasurementOptions.value = ""
+            
+        nemsStd.value = defaults["nemsStandard"]
+        checkMeasurementOptions2.value = ""
+        checkFileOptions2.value = ""
+        checkSiteOptions2.value = ""
         
     
     checkSiteOptions.disabled = False
@@ -663,7 +672,51 @@ def updateCheckOptions2(change):
         checkSiteOptions2.layout.visibility = 'hidden'
         checkMeasurementOptions2.layout.visibility = 'hidden'
 
-    
+
+def updatedNems(change):
+    if change['old'] == change['new']:
+        return
+    #Get the new Nems config settings
+    nemsConfig = nq.configParams_N(nemsStd=nemsStd.value).tail(1)
+    # If there are max or min suspect or fail values then update them
+    # Fail Below
+    if nemsConfig["MinFail"].to_string(index=False) != 'NaN':
+        # disable option
+        grfbSlot.disabled = True
+        # populate option
+        grfbSlot.value = float(nemsConfig["MinFail"].to_string(index=False))
+    else:
+        #enable option
+        grfbSlot.disabled = False
+    # Fail Above
+    if nemsConfig["MaxFail"].to_string(index=False) != 'NaN':
+        # disable option
+        grfaSlot.disabled = True
+        # populate option
+        grfaSlot.value = float(nemsConfig["MaxFail"].to_string(index=False))
+    else:
+        #enable option
+        grfaSlot.disabled = False
+    # Suspect Below    
+    if nemsConfig["MinSuspect"].to_string(index=False) != 'NaN':
+        # disable option
+        grsbSlot.disabled = True
+        # populate option
+        grsbSlot.value = float(nemsConfig["MinSuspect"].to_string(index=False))
+    else:
+        #enable option
+        grsbSlot.disabled = False
+    # Suspect Above
+    if nemsConfig["MaxSuspect"].to_string(index=False) != 'NaN':
+        # disable option
+        grsaSlot.disabled = True
+        # populate option
+        grsaSlot.value = float(nemsConfig["MaxSuspect"].to_string(index=False))
+    else:
+        #enable option
+        grsaSlot.disabled = False
+        
+        
 fileOptions.observe(updateSites, 'value')    
 siteOptions.observe(updateMsmt, 'value')
 #measurementOptions.observe(updateRange)
@@ -677,6 +730,8 @@ checkFileOptions2.observe(updateCheckSites2, 'value')
 checkSiteOptions2.observe(updateCheckMsmt2, 'value')
 
 chk2Box.observe(updateCheckOptions2, 'value')
+
+nemsStd.observe(updatedNems, 'value')
 
 #siteOptions.change(updateMsmt)
 #measurementOptions.change(updateOptions)
@@ -990,15 +1045,35 @@ def plot_NEMS_results(data, data_set, chkData=pd.DataFrame()):
 
 
 def on_runBtn_clicked(b):
+    
+    
+    
     output.clear_output()
     # Data Status
     
-    #Save to runlog
-    save_options(filename = 'Logs/runLog.csv')
+    
     
     with output:
         dataStatus = widgets.HTML(value="Retrieving Data.  Please note that data is pulled pulled out live from the server and be patient.")
         display(dataStatus)
+        
+        # Do some sanity checks and fail nicely if there are issues
+    
+        # Fail below must be less than suspect below
+        if grfbSlot.value > grsbSlot.value:
+            dataStatus.value = '<b style="color:red;">Range fail below is greater than Range suspect below.  Change settings and rerun.<b>'
+            #stop before running tests
+            return
+            
+        # Fail above must be greater than fail above
+        if grfaSlot.value < grsaSlot.value:
+            dataStatus.value = '<b style="color:red;">Range fail above is less than Range suspect above.  Change settings and rerun.<b>'
+            #stop before running tests
+            return
+        
+        #Save to runlog
+        save_options(filename = 'Logs/runLog.csv')
+        
         #print("Please note that data is pulled pulled out live from the server and be patient.")
         #qb.runTests()
         #global data
