@@ -57,7 +57,7 @@ def statusFunction(Status):
 
 def getDefaults():
     # Open the run log
-    runs = pd.read_csv('Logs/runLog.csv')
+    runs = pd.read_csv('Logs/runLog.csv', dtype=str)
     # Get the current user
     user = os.getlogin()
     # Filter to the latest run for the current user
@@ -80,7 +80,21 @@ def getDefaults():
             "checkFile2": latest['checkFile2'].to_string(index=False),
             "checkSite2": latest['checkSite2'].to_string(index=False),
             "checkMeasurement2": latest['checkMeasurement2'].to_string(index=False),
-            "nemsStandard": latest['nemsStandard'].to_string(index=False)
+            "nemsStandard": latest['nemsStandard'].to_string(index=False),
+            "grossRangeFailBelow": float(latest['grossRangeFailBelow'].to_string(index=False)),
+            "grossRangeFailAbove": float(latest['grossRangeFailAbove'].to_string(index=False)),
+            "grossRangeSuspectBelow": float(latest['grossRangeSuspectBelow'].to_string(index=False)),
+            "grossRangeSuspectAbove": float(latest['grossRangeSuspectAbove'].to_string(index=False)),
+            "flatLineTolerance": float(latest['flatLineTolerance'].to_string(index=False)),
+            "flatLineSuspectThreshold": int(latest['flatLineSuspectThreshold'].to_string(index=False)),
+            "flatLineFailThreshold": int(latest['flatLineFailThreshold'].to_string(index=False)),
+            "rateOfChangeThreshold": float(latest['rateOfChangeThreshold'].to_string(index=False)),
+            "spikeSuspectThreshold": float(latest['spikeSuspectThreshold'].to_string(index=False)),
+            "spikeFailThreshold": float(latest['spikeFailThreshold'].to_string(index=False)),
+            "interpolate": latest['interpolate'].to_string(index=False).lower() in ['true'],
+            "processGapThreshold": int(latest['processGapThreshold'].to_string(index=False)),
+            "processIntAllowance": int(latest['processIntAllowance'].to_string(index=False)),
+            "maxCode": latest['maxCode'].to_string(index=False)
         }
     else:
         defaults = {
@@ -98,7 +112,21 @@ def getDefaults():
             "checkFile2": "",
             "checkSite2": "",
             "checkMeasurement2": "",
-            "nemsStandard": 'Not Available'
+            "nemsStandard": 'Not Available',
+            "grossRangeFailBelow": 5,
+            "grossRangeFailAbove": 25,
+            "grossRangeSuspectBelow": 10,
+            "grossRangeSuspectAbove": 22,
+            "flatLineTolerance": 0.001,
+            "flatLineSuspectThreshold": 10800,
+            "flatLineFailThreshold": 21600,
+            "rateOfChangeThreshold": 0.001,
+            "spikeSuspectThreshold": 0.33,
+            "spikeFailThreshold": 1,
+            "interpolate": False,
+            "processGapThreshold": 10800,
+            "processIntAllowance": 5,
+            "maxCode": '600'
         }
     
     return defaults
@@ -259,19 +287,19 @@ nemsStd = widgets.Dropdown(options=pd.unique(nemsopt['NEMS_Standard']).tolist(),
 #grfaSlot = widgets.IntText(value=25,style=style)
 #grsbSlot = widgets.IntText(value=10,style=style)
 #grsaSlot = widgets.IntText(value=22,style=style)
-grfbSlot = widgets.FloatText(value=5,style=style)
-grfaSlot = widgets.FloatText(value=25,style=style)
-grsbSlot = widgets.FloatText(value=10,style=style)
-grsaSlot = widgets.FloatText(value=22,style=style)
+grfbSlot = widgets.FloatText(value=defaults["grossRangeFailBelow"],style=style)
+grfaSlot = widgets.FloatText(value=defaults["grossRangeFailAbove"],style=style)
+grsbSlot = widgets.FloatText(value=defaults["grossRangeSuspectBelow"],style=style)
+grsaSlot = widgets.FloatText(value=defaults["grossRangeSuspectAbove"],style=style)
 
-fltSlot = widgets.FloatText(value=0.001,style=style)
-rocSlot = widgets.FloatText(value=0.001,style=style)
+fltSlot = widgets.FloatText(value=defaults["flatLineTolerance"],style=style)
+rocSlot = widgets.FloatText(value=defaults["rateOfChangeThreshold"],style=style)
 
-flatLineSuspectThreshold = widgets.IntText(value=10800,style=style)
-flatLineFailThreshold = widgets.IntText(value=21600,style=style)
+flatLineSuspectThreshold = widgets.IntText(value=defaults["flatLineSuspectThreshold"],style=style)
+flatLineFailThreshold = widgets.IntText(value=defaults["flatLineFailThreshold"],style=style)
 
-spikeSuspectThreshold = widgets.FloatText(value=0.33,style=style)
-spikeFailThreshold = widgets.FloatText(value=1,style=style)
+spikeSuspectThreshold = widgets.FloatText(value=defaults["spikeSuspectThreshold"],style=style)
+spikeFailThreshold = widgets.FloatText(value=defaults["spikeFailThreshold"],style=style)
 
 #sDate = widgets.DatePicker(value=pd.to_datetime('2020-01-01'))
 #eDate = widgets.DatePicker(value=pd.to_datetime('2020-02-01'))
@@ -286,13 +314,13 @@ sDate = widgets.DatePicker(value=datetime.strptime(defaults["startTime"].split()
 eDate = widgets.DatePicker(value=datetime.strptime(defaults["endTime"].split()[0], "%Y-%m-%d"))
 
 # Processing Options
-interpolationFlag = widgets.Checkbox(value=False, description='Interpolate', disabled=False, indent=True)
+interpolationFlag = widgets.Checkbox(value=defaults["interpolate"], description='Interpolate', disabled=False, indent=True)
     
-gapThreshold = widgets.IntText(value=10800,style=style)
-interpolationAllowance = widgets.IntText(value=5,style=style)
+gapThreshold = widgets.IntText(value=defaults["processGapThreshold"],style=style)
+interpolationAllowance = widgets.IntText(value=defaults["processIntAllowance"],style=style)
 
 maxCodeOptions = widgets.Dropdown(options=['600', '500', '400', '200'], 
-                                  value='600')      
+                                  value=defaults["maxCode"])      
 
 # Status
 optStatus = widgets.HTML(value="Default Options")
